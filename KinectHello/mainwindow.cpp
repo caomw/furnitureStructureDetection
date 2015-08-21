@@ -97,7 +97,7 @@ void MainWindow::grabResUpdated(/*cv::Mat**/){
 	//glWidget->shapeDetect();
 	//imwrite("back.bmp", rgbWidget->gcapp.binMask);
 
-	//FileStorage fs("data0_door2.xml", FileStorage::WRITE);
+	//FileStorage fs("data0_drawer1.xml", FileStorage::WRITE);
 	//fs << "vocabulary" << rgbWidget->gcapp.binMask;
 	//fs.release();
 

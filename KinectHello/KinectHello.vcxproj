@@ -197,6 +197,9 @@
     <ClInclude Include="glm.h" />
     <ClInclude Include="grabcutcv.h" />
     <ClInclude Include="grabcut_source_code.h" />
+    <ClInclude Include="MyHingeJoint.h" />
+    <ClInclude Include="MyJoint.h" />
+    <ClInclude Include="MySliderJoint.h" />
     <ClInclude Include="pca.h" />
     <CustomBuild Include="paintwidget.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>

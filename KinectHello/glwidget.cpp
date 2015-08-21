@@ -1510,7 +1510,7 @@ void GLWidget::wheelEvent(QWheelEvent * event){
 }
 
 void GLWidget::keyPressEvent(QKeyEvent * event){
-	int x = event->key();
+	
 	switch (event->key()){
 	case 'W':
 		setTrans(0, 0, -1);

@@ -108,5 +108,14 @@
     <ClInclude Include="pca.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MyHingeJoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MyJoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MySliderJoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
