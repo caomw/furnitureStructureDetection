@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QVector4D>
 #include <math.h>
+//#include "MyHingeJoint.h"
 #define T(x) (model->triangles[(x)])
 
 //#pragma comment(lib,"PrimitiveShapes.lib")
@@ -40,16 +41,15 @@ GLWidget::GLWidget(QWidget *parent)
 	//colorList.push_back(QVector3D(108 / 255.0f, 7 / 255.0f, 85 / 255.0f));
 	//colorList.push_back(QVector3D(120 / 255.0f, 0 / 255.0f, 101 / 255.0f));
 	//colorList.push_back(QVector3D(211 / 255.0f, 0 / 255.0f, 0 / 255.0f));
-	colorList.push_back(QVector3D(255 / 255.0f, 255 / 255.0f, 0 / 255.0f));
-	colorList.push_back(QVector3D(255 / 255.0f, 255 / 255.0f, 255 / 255.0f));
-	colorList.push_back(QVector3D(0 / 255.0f, 255 / 255.0f, 255 / 255.0f));
-	colorList.push_back(QVector3D(255 / 255.0f, 0 / 255.0f, 255 / 255.0f));
-
-	colorList.push_back(QVector3D(0.0, 0.9f, 0.0f));
-	colorList.push_back(QVector3D(0.0, 0.0f, 0.9f));
-	colorList.push_back(QVector3D(0.729, 0.004f, 1.0f));
-	colorList.push_back(QVector3D(0.639, 0.376f, 0.594f));
-	colorList.push_back(QVector3D(1.0, 0.310f, 0.322f));
+	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 0 / 255.0f,1.0));
+	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
+	colorList.push_back(QVector4D(0 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
+	colorList.push_back(QVector4D(255 / 255.0f, 0 / 255.0f, 255 / 255.0f,1.0));
+	colorList.push_back(QVector4D(0.0, 0.9f, 0.0f,1.0));
+	colorList.push_back(QVector4D(0.0, 0.0f, 0.9f,1.0));
+	colorList.push_back(QVector4D(0.729, 0.004f, 1.0f,1.0));
+	colorList.push_back(QVector4D(0.639, 0.376f, 0.594f,1.0));
+	colorList.push_back(QVector4D(1.0, 0.310f, 0.322f,1.0));
 }
 
 GLWidget::~GLWidget()
@@ -384,13 +384,13 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 
 		glPushMatrix();
 		glBegin(GL_LINES);
-		for (float x = -Mc; x <= Mc; x += 1){
-			if (abs(x - 0.0f) < 0.0000000001)
+		for (float x = -Mc; x <= Mc; x += 0.1){
+			if (abs(x - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(x, -Mc, 0); glVertex3f(x, Mc, 0);
 		}
-		for (float y = -Mc; y <= Mc; y += 1){
-			if (abs(y - 0.0f) < 0.0000000001)
+		for (float y = -Mc; y <= Mc + 0.05; y += 0.1){
+			if (abs(y - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(-Mc, y, 0); glVertex3f(Mc, y, 0);
 		}
@@ -417,13 +417,13 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
 		glPushMatrix();
 		glBegin(GL_LINES);
-		for (float y = -Mc; y <= Mc; y += 1){
-			if (abs(y - 0.0f) < 0.0000000001)
+		for (float y = -Mc; y <= Mc + 0.05; y += 0.1){
+			if (abs(y - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(0, y, -Mc); glVertex3f(0, y, Mc);
 		}
-		for (float z = -Mc; z <= Mc; z += 1){
-			if (abs(z - 0.0f) < 0.0000000001)
+		for (float z = -Mc; z <= Mc + 0.05; z += 0.1){
+			if (abs(z - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(0, -Mc, z); glVertex3f(0, Mc, z);
 		}
@@ -450,13 +450,13 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
 		glPushMatrix();
 		glBegin(GL_LINES);
-		for (float z = -Mc; z <= Mc; z += 1){
-			if (abs(z - 0.0f) < 0.0000000001)
+		for (float z = -Mc; z <= Mc + 0.05; z += 0.1){
+			if (abs(z - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(-Mc, 0, z); glVertex3f(Mc, 0, z);
 		}
-		for (float x = -Mc; x <= Mc; x += 1){
-			if (abs(x - 0.0f) < 0.0000000001)
+		for (float x = -Mc; x <= Mc + 0.05; x += 0.1){
+			if (abs(x - 0.0f) < 0.000001)
 				continue;
 			glVertex3f(x, 0, -Mc); glVertex3f(x, 0, Mc);
 		}
@@ -487,7 +487,7 @@ void GLWidget::drawBoxLine(){
 	for (size_t i = 0; i < boxList.size(); i++)
 	{
 		m_program->setUniformValue(m_fixedColor, QVector4D(colorList.at(i % colorList.size())));
-
+		m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(boxList.at(i).vertex[0][0], boxList.at(i).vertex[0][1], boxList.at(i).vertex[0][2]);
@@ -562,7 +562,7 @@ void GLWidget::paintGL()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 
 	texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
@@ -583,12 +583,13 @@ void GLWidget::paintGL()
     
     QMatrix3x3 normalMatrix = m_world.normalMatrix();
     m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
-	
+
 	m_program->setUniformValue(m_fixedPipeline, true);
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
-	drawcoordinate(m_program, coord, m_world, m_fixedColor);
 
-	m_world.rotate((m_xRot / 16.0f), 1, 0, 0);
+	drawcoordinate(m_program, coord, m_world, m_fixedColor);
+	
+	m_world.rotate(m_xRot / 16.0f, 1, 0, 0);
 	m_world.rotate(m_yRot / 16.0f, 0, 1, 0);
 	m_world.rotate(m_zRot / 16.0f, 0, 0, 1);
 	
@@ -596,23 +597,37 @@ void GLWidget::paintGL()
 	m_world.rotate(180, 0, 1, 0);
 	m_world.translate(0, 0, -1.5);
 
-	m_program->setUniformValue(m_fixedPipeline, false);
-	//m_program->setUniformValue(m_colorAssigned, false);
-	m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 1.0f, 0.0f, 0.0f));
-
-	for (int i = 0; i < shapeRange.size(); i++)
-		drawShape(shapeRange[i].first, shapeRange[i].second, i % colorList.size());
-
-	m_program->setUniformValue(m_fixedPipeline, true);
+	
 
 	if (!drawShapeWithColor)
 		drawBoxLine();
+
+	m_program->setUniformValue(m_fixedPipeline, false);
+	for (size_t i = 0; i < boxList.size(); i++)
+		for (size_t j = 0; j < boxList.at(i).shapeRange.size(); j++)
+			drawShape(boxList.at(i).shapeRange.at(j).first, boxList.at(i).shapeRange.at(j).second, boxList.at(i).m_transform);
+
 	m_program->release();
 }
 
 void GLWidget::changeDrawShape(){
 	drawShapeWithColor = 1 - drawShapeWithColor;
 	update();
+}
+
+void GLWidget::drawShape(int begin, int end, QMatrix4x4 boxTransform){
+
+	m_program->setUniformValue(m_hasTex, true);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxTransform);
+	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
+	m_program->setUniformValue(matAmbientLoc, QVector3D(0.4, 0.4, 0.4));
+	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
+	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
+	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
+
+	glPointSize(3);
+	glDrawArrays(GL_POINTS, begin, end - begin);
+
 }
 
 void GLWidget::drawTriangle(int begin, int end, int color){
@@ -626,24 +641,9 @@ void GLWidget::drawTriangle(int begin, int end, int color){
 	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
 	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
 	glPointSize(3);
-	glDrawArrays(GL_TRIANGLES, begin, end);
+	glDrawArrays(GL_TRIANGLES, begin, end - begin);
 }
 
-void GLWidget::drawShape(int begin, int end, int color){
-	m_logoVbo.bind();
-	m_logoVbo.allocate(m_data.constData(), m_count * sizeof(GLfloat));
-	m_program->setUniformValue(m_hasTex, true);
-	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
-	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
-	m_program->setUniformValue(matAmbientLoc, QVector3D(0.4, 0.4, 0.4));
-	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
-	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
-	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
-
-	glPointSize(3);
-	glDrawArrays(GL_POINTS, begin, end);
-
-}
 
 void GLWidget::drawPoint(){
 
@@ -875,6 +875,7 @@ void GLWidget::boxTest(){
 	shapeDetect();
 	fs.release();
 
+
 	pc.clear();
 	fs.open("data0_door1.xml", cv::FileStorage::READ);
 	fs["vocabulary"] >> back;
@@ -888,6 +889,49 @@ void GLWidget::boxTest(){
 	addPointCloud(back);
 	shapeDetect();
 	fs.release();
+
+
+	//boxList.at(3).m_transform.translate(1,1,1);
+	Vec3fShape point0 = boxList.at(3).vertex[3];
+	Vec3fShape point1 = boxList.at(3).vertex[7];
+	point1 = point1 - point0;
+	QMatrix4x4 rotate;
+	QMatrix4x4 transform;
+	transform.setToIdentity();
+	rotate.setToIdentity();
+	rotate.rotate(60, point1[0], point1[1], point1[2]);
+
+	transform.translate(-point0[0], -point0[1], -point0[2]);
+	//boxList.at(3).m_transform.translate(-point1[0], -point1[1], -point1[2]);
+	//boxList.at(3).m_transform.rotate(60, 0,1,0);
+	boxList.at(3).m_transform = rotate * transform;
+	transform.setToIdentity();
+	transform.translate(point0[0], point0[1], point0[2]);
+
+	boxList.at(3).m_transform = transform * boxList.at(3).m_transform;
+
+	//boxList.at(3).m_transform.translate(1,1,1);
+	point0 = boxList.at(4).vertex[3];
+	point1 = boxList.at(4).vertex[7];
+	point1 = point1 - point0;
+	transform.setToIdentity();
+	rotate.setToIdentity();
+	rotate.rotate(-90, point1[0], point1[1], point1[2]);
+
+	transform.translate(-point0[0], -point0[1], -point0[2]);
+	//boxList.at(3).m_transform.translate(-point1[0], -point1[1], -point1[2]);
+	//boxList.at(3).m_transform.rotate(60, 0,1,0);
+	boxList.at(4).m_transform = rotate * transform;
+	transform.setToIdentity();
+	transform.translate(point0[0], point0[1], point0[2]);
+
+	boxList.at(4).m_transform = transform * boxList.at(4).m_transform;
+
+	//boxList.at(4).m_transform.translate(-1, -1, -1);
+
+	m_logoVbo.bind();
+	m_logoVbo.allocate(/*m_data.constData()*/m_data.data(), m_count* sizeof(GLfloat));
+
 }
 
 
@@ -940,10 +984,11 @@ void GLWidget::shapeDetect(int signForGround ){
 
 	sort(shapes.begin(), shapes.end(), less_second);
 
+	if (!signForGround)
 	for (size_t j = 0; j < shapes.size(); j++)
-	{
-		m_data.resize(m_data.size() + singleShapeSize * 8);
+	{	
 		singleShapeSize = shapes[j].second;
+		m_data.resize(m_data.size() + singleShapeSize * 8);
 		shapeRange.push_back(std::make_pair(m_count/8, m_count/8 + singleShapeSize));
 		for (size_t i = offset; i > offset - singleShapeSize; i--)
 		{
@@ -957,7 +1002,7 @@ void GLWidget::shapeDetect(int signForGround ){
 				);
 			cam2tex(texX, texY, pc[i].pos[2], pc[i].pos[0], pc[i].pos[1]);
 			addTex(QVector2D(texX / 640.0f, texY / 480.0f));
-			QVector3D colorValue = colorList.at((shapeRange.size()-1) % colorList.size());
+			QVector4D colorValue = colorList.at((shapeRange.size()-1 + boxList.size()) % colorList.size());
 			shapeColor->setPixel(texX, texY, qRgb(colorValue.x() * 255, colorValue.y() * 255, colorValue.z() * 255));
 		}
 		offset -= singleShapeSize;
@@ -978,6 +1023,8 @@ void GLWidget::shapeDetect(int signForGround ){
 	pnormal[0] = ptr->Internal().getNormal();
 	if (signForGround){
 		normalGround = pnormal[0];
+		m_data.clear();
+		m_count = 0;
 		return;
 	}
 	else{
@@ -1115,6 +1162,10 @@ void GLWidget::shapeDetect(int signForGround ){
 	float pmin[3] = { minLength[0], minLength[1], minLength[2] };
 
 	Box nBox(center, pnormal, pmax, pmin);
+	for (size_t i = 0; i < shapeRange.size(); i++)
+		nBox.shapeRange.push_back(shapeRange.at(i));
+	shapeRange.clear();
+	
 	//addBox(nBox);
 	boxList.push_back(nBox);
 	update();

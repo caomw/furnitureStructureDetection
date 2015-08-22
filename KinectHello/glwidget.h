@@ -13,11 +13,7 @@
 #include <opencv2\highgui\highgui.hpp>
 
 //#pragma comment(lib,"PrimitiveShapes.lib")
-#include "RansacShapeDetector.h"
-#include "PlanePrimitiveShapeConstructor.h"
-#include "PlanePrimitiveShape.h"
-
-//#include "logo.h"
+#include "box.h"
 #include "glm.h"
 #include "pca.h"
 
@@ -25,7 +21,7 @@
 #define XY   0x1002
 #define YZ   0x1003
 #define XZ   0x1004
-#define Mc 10.0
+#define Mc 1.0
 #define HEIGHT_IMG 480
 #define WIDTH_IMG 640
 
@@ -68,45 +64,7 @@ public:
 	Shape * next;
 };
 
-class Box{
-public:
-	Box(Vec3fShape pcenter, Vec3fShape* pnormal, float* pmax, float* pmin ):boxBegin(0),boxEnd(0){
-		Vec3fShape it;
-		static int mat[8][3] = {
-			{ 0, 1, 1 },
-			{ 1, 1, 1 },
-			{ 1, 1, 0 },
-			{ 0, 1, 0 },
-			{ 0, 0, 1 },
-			{ 1, 0, 1 },
-			{ 1, 0, 0 },
-			{ 0, 0, 0 },
-		};
-		center = pcenter;
-		for (size_t i = 0; i < 3; i++)
-		{
-			normal[i] = pnormal[i];
-			max[i] = pmax[i];
-			min[i] = pmin[i];
-		}
-		for (size_t i = 0; i < 8; i++)
-		{
-			vertex[i] = center
-				+ mat[i][0] * normal[0] * max[0] + (1 - mat[i][0])* normal[0] * min[0]
-				+ mat[i][1] * normal[1] * max[1] + (1 - mat[i][1])* normal[1] * min[1]
-				+ mat[i][2] * normal[2] * max[2] + (1 - mat[i][2])* normal[2] * min[2];
-		}
 
-
-	};
-	Vec3fShape center;
-	Vec3fShape normal[3];
-	float max[3];
-	float min[3];
-	int boxBegin;
-	int boxEnd;
-	Vec3fShape vertex[8];
-};
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -115,38 +73,44 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 public:
     GLWidget(QWidget *parent = 0);
     ~GLWidget();
-
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-	QOpenGLTexture* texture;
-	QVector<QOpenGLTexture*> texList;
-	int coord = XZ;
+	//**************************************	used by another project		**************************************
 	float dpi = 5.0;
-	modelGuy* currentMesh;
-	bool loadTexture(GLMmodel* model);
 	QVector <GLMmodel *> modelList;
 	GLMmodel * addModel(QString name);
 	GLMmodel * removeModel(QString name);
-	QVector<GLfloat> m_data;
-	int m_count;
-	int width;
-	int height;
-	int rawPointCount;
+	modelGuy* currentMesh;
+	bool loadTexture(GLMmodel* model);
+	QVector<QOpenGLTexture*> texList;
 	void add(const QVector3D &v, const QVector3D &n);
 	void addV(const QVector3D &v);
 	void addTex(const QVector2D &t);
 	void addBox(Box & b);
 	void addPointCloud(cv::Mat mask);
+	//*************************************************************************************************************
+
+    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
+    QSize sizeHint() const Q_DECL_OVERRIDE;
+	QOpenGLTexture* texture;
+	
+	int coord = XZ;
+	int m_count;
+	int width;
+	int height;
+	int rawPointCount;
+	QVector<GLfloat> m_data;
+
 	GLvoid glmVN(GLMmodel* model);
 	GLvoid glmBox(GLMmodel* model);
-	void draw();
 	bool updateBuffer();
-	void drawPoint();
-	void drawShape(int begin, int end, int color);
-	void drawTriangle(int begin, int end, int color);
-	void drawBoxLine();
 	QString fileNameRightClick;
 	QVector<modelGuy *> modelManager;
+	void draw();
+
+	void drawPoint();
+	void drawShape(int begin, int end, QMatrix4x4 boxTransform);
+	void drawTriangle(int begin, int end, int color);
+	void drawBoxLine();
+	
 	QImage *rgbMap;
 	QImage *shapeColor;
 	std::vector<Vec3fShape> vertex;
@@ -154,14 +118,13 @@ public:
 	std::vector<Box> boxList;
 	PointShapeCloud pc;
 	std::vector<std::pair<int, int>> shapeRange;
-	QVector<QVector3D> colorList;
+	QVector<QVector4D> colorList;
 	cv::Mat grabResult;
-	void shapeDetect(int signForGround = 0);
 	std::vector<Vec3fShape> normalList;
 	Vec3fShape normalGround;
 	int triangleBegin;
 	int triangleEnd;
-	
+	void shapeDetect(int signForGround = 0);
 
 public slots:
     void setXRotation(int angle);
@@ -216,6 +179,7 @@ private:
     int m_xRot;
     int m_yRot;
     int m_zRot;
+	GLMmodel * model_ptr;
     QPoint m_lastPos;
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_logoVbo;
@@ -233,9 +197,9 @@ private:
 	int matSpecularLoc;
 	int matShineLoc;
 	int m_viewPos;
-	int m_specificColor;
-	int m_colorAssigned;
-	int m_shapeColor;
+	//int m_specificColor;
+	//int m_colorAssigned;
+	//int m_shapeColor;
     QMatrix4x4 m_proj;
     QMatrix4x4 m_camera;
     QMatrix4x4 m_world;
@@ -244,7 +208,6 @@ private:
 	QVector3D up;
 	QVector3D selectRay;
     bool m_transparent;
-	GLMmodel * model_ptr;
 	float stepDPI;
 	float stepLength;
 	float nearPlane;

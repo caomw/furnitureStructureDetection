@@ -6,6 +6,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
     QMenu *menuWindow = menuBar->addMenu(tr("&Window"));
 	QToolBar *toolBar = addToolBar(tr("&TEST"));
 
+
+	//actions of the tool bar
 	QAction *widgetAction = new QAction(QIcon("Resources/open.png"),tr("&Open"), this);
 	QAction *openAction = new QAction(tr("&open"), this);
 	QAction *brutalModeWidgetAction = new QAction(QIcon("Resources/changeBrutal.png"), tr("&Mode"), this); 
@@ -26,52 +28,58 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	toolBar->addAction(shapeWidgetAction);
 	toolBar->addAction(boxTestWidgetAction); 
 	toolBar->addAction(shapeDrawWidgetAction);
-	
 	toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
+	//center area widget
 	QWidget *centerWidget = new QWidget(this);
 	QHBoxLayout *mainLayout = new QHBoxLayout(this);
 	QVBoxLayout *leftLayout = new QVBoxLayout(this);
 	glWidget = new GLWidget(this);
 	
+
 	rgbWidget = new PaintWidget(centerWidget);
 	rgbWidget->setDrawable(true);
 	depthWidget = new PaintWidget(centerWidget);
+	depthWidget->setDrawable(false);
 
-	rgbWidget->setMinimumSize(QSize(548, 411));
-	depthWidget->setMinimumSize(QSize(548, 411));
+	rgbWidget->setMinimumSize(QSize(592, 444));
+	depthWidget->setMinimumSize(QSize(592, 444));
 	rgbWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 	depthWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
 	connect(grabCutWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(grabCutIteration()));
 	
 
-	QVBoxLayout *rgb = new QVBoxLayout(this);
-	rgb->addWidget(rgbWidget);
+	//QVBoxLayout *rgb = new QVBoxLayout(this);
+	//rgb->addWidget(rgbWidget);
 
-	QGroupBox *rgbGroupBox = new QGroupBox(tr("RGB"));
-	rgbGroupBox->setLayout(rgb);
+	//QGroupBox *rgbGroupBox = new QGroupBox(tr("RGB"));
+	//rgbGroupBox->setLayout(rgb);
 
-	leftLayout->addWidget(rgbGroupBox);
-	leftLayout->addSpacing(10);
+	//leftLayout->addWidget(rgbGroupBox);
+	leftLayout->addWidget(rgbWidget);
+	//leftLayout->addSpacing(10);
 
-	QVBoxLayout *depth = new QVBoxLayout(this);
-	depth->addWidget(depthWidget);
+	//QVBoxLayout *depth = new QVBoxLayout(this);
+	//depth->addWidget(depthWidget);
 
-	QGroupBox *depthGroupBox = new QGroupBox(tr("Depth"));
-	depthGroupBox->setLayout(depth);
+	//QGroupBox *depthGroupBox = new QGroupBox(tr("Depth"));
+	//depthGroupBox->setLayout(depth);
 
-	leftLayout->addWidget(depthGroupBox);
+	//leftLayout->addWidget(depthGroupBox);
+	leftLayout->addWidget(depthWidget);
 
 	QWidget* imageWidget = new QWidget(this);
 	imageWidget->setLayout(leftLayout);
+	QTabWidget * leftTab = new QTabWidget();
+	leftTab->addTab(imageWidget, tr("RGB + Depth"));
 
 	QGroupBox *groupBox = new QGroupBox(tr("Graphics"));
 	QVBoxLayout *cg = new QVBoxLayout(this);
 	cg->addWidget(glWidget);
 	groupBox->setLayout(cg);
 	groupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-	mainLayout->addWidget(imageWidget,20);
+	mainLayout->addWidget(leftTab,23);
 	mainLayout->addWidget(groupBox,45);
 	centerWidget->setLayout(mainLayout);
 
@@ -82,13 +90,27 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(boxTestWidgetAction, SIGNAL(triggered()), glWidget, SLOT(boxTest()));
 	connect(brutalFinishWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeState()));
 	connect(brutalModeWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeSwitch()));
-	//connect(rgbWidget, SIGNAL(grabCutResult()), this, SLOT(grabResUpdated(/*cv::Mat**/)/*grabCutResultUpdated(cv::Mat*)*/));
 
-	//glWidget->grabResult = &(rgbWidget->gcapp.binMask);
 	rgbWidget->setSlave(depthWidget);
     setMenuBar(menuBar);
 	setCentralWidget(centerWidget);
 	setWindowTitle(tr("Hello Kinect"));
+
+	//the tab page of the boxed and joints
+	QVBoxLayout *leftSecondLayout = new QVBoxLayout(this);
+	QGroupBox *boxGroupBox = new QGroupBox(tr("Boxes"));
+	//depthGroupBox->setLayout(depth);
+	leftSecondLayout->addWidget(boxGroupBox);
+
+	QGroupBox *jointGroupBox = new QGroupBox(tr("Joints"));
+	leftSecondLayout->addWidget(jointGroupBox);
+
+
+	QWidget *leftSecond = new QWidget();
+	leftSecond->setLayout(leftSecondLayout);
+	leftTab->addTab(leftSecond,tr("Boxes + Joints"));
+
+
 	openFolder();
 }
 
@@ -158,8 +180,8 @@ void MainWindow::openFolder(){
 	float camX = 0.0f;
 	float camY = 0.0f;
 
-	glWidget->m_count = 0;
-	glWidget->m_data.resize(width * height * 8);
+	//glWidget->m_count = 0;
+	//glWidget->m_data.resize(width * height * 8);
 
 	glWidget->width = width;
 	glWidget->height = height;
@@ -175,12 +197,12 @@ void MainWindow::openFolder(){
 			if (QVector3D(camX / 1000.0f, camY / 1000.0f, depth_img[y * width + x] / 1000.0f).length() < 0.000000001)
 				continue;
 			
-			glWidget->add(QVector3D(camX / 1000.0f, camY / 1000.0f, depth_img[y * width + x] / 1000.0f), QVector3D(0, -1, -1));
-			glWidget->addTex(QVector2D((float)(x - 6) / (float)width, (float)y / (float)height));
+			//glWidget->add(QVector3D(camX / 1000.0f, camY / 1000.0f, depth_img[y * width + x] / 1000.0f), QVector3D(0, -1, -1));
+			//glWidget->addTex(QVector2D((float)(x - 6) / (float)width, (float)y / (float)height));
 		}
 	}
 
-	glWidget->rawPointCount = glWidget->m_count / 8;
+	//glWidget->rawPointCount = glWidget->m_count / 8;
 
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {

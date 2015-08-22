@@ -204,9 +204,10 @@ void PaintWidget::mousePressEvent(QMouseEvent *event){
 			if ((isb || isf) && rectState == SET)
 				prLblsState = IN_PROCESS;
 		}
-	}
+	
 	update();
 	slave->update();
+	}
 }
 
 void PaintWidget::mouseMoveEvent(QMouseEvent *event){
@@ -237,8 +238,12 @@ void PaintWidget::mouseMoveEvent(QMouseEvent *event){
 		}
 	}
 	//}
-	update();
-	slave->update();
+	if (drawable)
+	{
+		update();
+		slave->update();
+	}
+
 
 }
 
@@ -280,9 +285,11 @@ void PaintWidget::mouseReleaseEvent(QMouseEvent *event){
 		}
 		
 		mouseButton = 0;
+
+		update();
+		slave->update();
 	}
-	update();
-	slave->update();
+
 
 }
 
