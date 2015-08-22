@@ -531,7 +531,7 @@ void GCApplication::setImageAndWinName(const Mat* _image, const string& _winName
 	//	return;
 	image = _image;
 	image->copyTo(res);
-	winName = &_winName;
+	//winName = &_winName;
 	mask.create(image->size(), CV_8UC1);
 	reset();
 }
@@ -543,7 +543,7 @@ void GCApplication::setDepth(const Mat* _image)
 
 void GCApplication::showImage()
 {
-	if (image->empty() || winName->empty())
+	if (image->empty()/* || winName->empty()*/)
 		return;
 
 	Mat res;

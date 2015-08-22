@@ -16,6 +16,8 @@
 #include "box.h"
 #include "glm.h"
 #include "pca.h"
+//#include "boxJoint.h"
+#include "boxHingeJoint.h"
 
 #define NoCo 0x1001
 #define XY   0x1002
@@ -81,29 +83,32 @@ public:
 	modelGuy* currentMesh;
 	bool loadTexture(GLMmodel* model);
 	QVector<QOpenGLTexture*> texList;
-	void add(const QVector3D &v, const QVector3D &n);
-	void addV(const QVector3D &v);
-	void addTex(const QVector2D &t);
-	void addBox(Box & b);
-	void addPointCloud(cv::Mat mask);
-	//*************************************************************************************************************
-
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-	QOpenGLTexture* texture;
-	
-	int coord = XZ;
-	int m_count;
-	int width;
-	int height;
-	int rawPointCount;
-	QVector<GLfloat> m_data;
 
 	GLvoid glmVN(GLMmodel* model);
 	GLvoid glmBox(GLMmodel* model);
 	bool updateBuffer();
 	QString fileNameRightClick;
 	QVector<modelGuy *> modelManager;
+	//*************************************************************************************************************
+
+    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
+    QSize sizeHint() const Q_DECL_OVERRIDE;
+	QOpenGLTexture* texture;
+	
+	void add(const QVector3D &v, const QVector3D &n);
+	void addV(const QVector3D &v);
+	void addTex(const QVector2D &t);
+	void addBox(Box & b);
+	void addPointCloud(cv::Mat mask);
+
+	int coord = XZ;
+	int m_count;
+	int width;
+	int height;
+	int rawPointCount;
+	QVector<GLfloat> m_data;
+	
+
 	void draw();
 
 	void drawPoint();
@@ -116,6 +121,7 @@ public:
 	std::vector<Vec3fShape> vertex;
 	std::vector<Vec3fShape> normal;
 	std::vector<Box> boxList;
+	std::vector<BoxJoint> jointList;
 	PointShapeCloud pc;
 	std::vector<std::pair<int, int>> shapeRange;
 	QVector<QVector4D> colorList;
@@ -160,6 +166,9 @@ signals:
 	void sliderScaleChanged(int scale);
 	void sliderStepChanged(int scale);
 	void currentMeshChanged(int index);
+	//*************** furniture
+	void jointUpdate(std::vector<BoxJoint> pJointList);
+	void boxUpdate(std::vector<Box> pBoxList);
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;

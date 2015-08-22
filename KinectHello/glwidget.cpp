@@ -617,6 +617,9 @@ void GLWidget::changeDrawShape(){
 
 void GLWidget::drawShape(int begin, int end, QMatrix4x4 boxTransform){
 
+	m_logoVbo.bind();
+	m_logoVbo.allocate(m_data.constData(), m_count* sizeof(GLfloat));
+
 	m_program->setUniformValue(m_hasTex, true);
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxTransform);
 	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
@@ -890,47 +893,20 @@ void GLWidget::boxTest(){
 	shapeDetect();
 	fs.release();
 
+	BoxHingeJoint joint1(boxList.at(0),boxList.at(3));
+	joint1.setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
+	joint1.rotate(90);
 
-	//boxList.at(3).m_transform.translate(1,1,1);
-	Vec3fShape point0 = boxList.at(3).vertex[3];
-	Vec3fShape point1 = boxList.at(3).vertex[7];
-	point1 = point1 - point0;
-	QMatrix4x4 rotate;
-	QMatrix4x4 transform;
-	transform.setToIdentity();
-	rotate.setToIdentity();
-	rotate.rotate(60, point1[0], point1[1], point1[2]);
+	BoxHingeJoint joint2(boxList.at(0), boxList.at(4));
+	joint2.setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
+	joint2.rotate(-90);
 
-	transform.translate(-point0[0], -point0[1], -point0[2]);
-	//boxList.at(3).m_transform.translate(-point1[0], -point1[1], -point1[2]);
-	//boxList.at(3).m_transform.rotate(60, 0,1,0);
-	boxList.at(3).m_transform = rotate * transform;
-	transform.setToIdentity();
-	transform.translate(point0[0], point0[1], point0[2]);
+	
+	jointList.push_back(joint1);
+	jointList.push_back(joint2);
+	emit jointUpdate(jointList);
+	emit boxUpdate(boxList);
 
-	boxList.at(3).m_transform = transform * boxList.at(3).m_transform;
-
-	//boxList.at(3).m_transform.translate(1,1,1);
-	point0 = boxList.at(4).vertex[3];
-	point1 = boxList.at(4).vertex[7];
-	point1 = point1 - point0;
-	transform.setToIdentity();
-	rotate.setToIdentity();
-	rotate.rotate(-90, point1[0], point1[1], point1[2]);
-
-	transform.translate(-point0[0], -point0[1], -point0[2]);
-	//boxList.at(3).m_transform.translate(-point1[0], -point1[1], -point1[2]);
-	//boxList.at(3).m_transform.rotate(60, 0,1,0);
-	boxList.at(4).m_transform = rotate * transform;
-	transform.setToIdentity();
-	transform.translate(point0[0], point0[1], point0[2]);
-
-	boxList.at(4).m_transform = transform * boxList.at(4).m_transform;
-
-	//boxList.at(4).m_transform.translate(-1, -1, -1);
-
-	m_logoVbo.bind();
-	m_logoVbo.allocate(/*m_data.constData()*/m_data.data(), m_count* sizeof(GLfloat));
 
 }
 

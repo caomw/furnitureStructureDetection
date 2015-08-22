@@ -77,6 +77,12 @@
     <ClCompile Include="pca.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="boxHingeJoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="boxJoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="kinecthello.ui">

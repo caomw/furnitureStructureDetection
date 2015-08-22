@@ -20,6 +20,8 @@
 #include <QSplitter>
 #include <QAction>
 #include <QFileDialog>
+#include <QStandardItemModel>
+#include <QTreeView>
 #include "paintwidget.h"
 #include "glwidget.h"
 #include "opencv2/highgui/highgui.hpp"
@@ -38,8 +40,14 @@ public:
 		delete depthWidget;
 		delete glWidget;
 	};
-	QImage* rgbImage;
-	QImage* depthImage;
+	QImage * rgbImage;
+	QImage * depthImage;
+	QStandardItemModel * jointStd;
+	QStandardItemModel * boxStd;
+
+public slots:
+	void jointUpdate(std::vector<BoxJoint> pJointList);
+	void boxUpdate(std::vector<Box> pboxList);
 
 private slots:
 	void openFolder();

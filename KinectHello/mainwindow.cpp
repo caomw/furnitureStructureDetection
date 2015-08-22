@@ -100,18 +100,68 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QVBoxLayout *leftSecondLayout = new QVBoxLayout(this);
 	QGroupBox *boxGroupBox = new QGroupBox(tr("Boxes"));
 	//depthGroupBox->setLayout(depth);
+
+	QVBoxLayout *boxGroupLayout = new QVBoxLayout(this);
+
+	boxStd = new QStandardItemModel(this);
+	boxStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Boxes"));
+	QTreeView *boxTree = new QTreeView(this);
+	boxTree->setModel(boxStd);
+	boxTree->setContextMenuPolicy(Qt::CustomContextMenu);
+	boxGroupLayout->addWidget(boxTree);
+	boxGroupBox->setLayout(boxGroupLayout);
+
 	leftSecondLayout->addWidget(boxGroupBox);
-
+	QVBoxLayout *jointGroupLayout = new QVBoxLayout(this);
 	QGroupBox *jointGroupBox = new QGroupBox(tr("Joints"));
-	leftSecondLayout->addWidget(jointGroupBox);
+	jointStd = new QStandardItemModel(this);
+	jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joints"));
+	QTreeView *jointTree = new QTreeView(this);
+	jointTree->setModel(jointStd);
+	jointTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
+	jointGroupLayout->addWidget(jointTree);
+	QSlider * jointSlider;
+	jointSlider = new QSlider(Qt::Horizontal, this);
+	jointSlider->setRange(1, 100);
+	jointSlider->setSingleStep(1);
+	jointSlider->setPageStep(1);
+
+	jointGroupLayout->addWidget(jointSlider);
+
+	jointGroupBox->setLayout(jointGroupLayout);
+	leftSecondLayout->addWidget(jointGroupBox);
 
 	QWidget *leftSecond = new QWidget();
 	leftSecond->setLayout(leftSecondLayout);
 	leftTab->addTab(leftSecond,tr("Boxes + Joints"));
 
+	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint>)), this, SLOT(jointUpdate(std::vector<BoxJoint>)));
+	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>)));
 
 	openFolder();
+}
+
+void MainWindow::jointUpdate(std::vector<BoxJoint> pJointList){
+	jointStd->clear();
+	jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joint"));
+	for (size_t i = 0; i < pJointList.size(); i++)
+	{
+		QStandardItem* itemProject = new QStandardItem(QString("Joint") + QString::number(i));
+		//itemProject->setEditable(false);
+		jointStd->appendRow(itemProject);
+	}
+}
+
+void MainWindow::boxUpdate(std::vector<Box> pBoxList){
+	boxStd->clear();
+	boxStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Box"));
+	for (size_t i = 0; i < pBoxList.size(); i++)
+	{
+		QStandardItem* itemProject = new QStandardItem(QString("Box") + QString::number(i));
+		//itemProject->setEditable(false);
+		boxStd->appendRow(itemProject);
+	}
 }
 
 void MainWindow::grabResUpdated(/*cv::Mat**/){
