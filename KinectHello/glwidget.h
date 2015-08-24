@@ -7,6 +7,7 @@
 #include <QOpenGLBuffer>
 #include <QMatrix4x4>
 #include <QOpenglTexture>
+#include <QModelIndex>
 #include <QPair>
 #include <QVector4D>
 #include <opencv\cxcore.h>
@@ -18,6 +19,7 @@
 #include "pca.h"
 //#include "boxJoint.h"
 #include "boxHingeJoint.h"
+#include "boxSliderJoint.h"
 
 #define NoCo 0x1001
 #define XY   0x1002
@@ -66,8 +68,6 @@ public:
 	Shape * next;
 };
 
-
-
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
@@ -108,9 +108,7 @@ public:
 	int rawPointCount;
 	QVector<GLfloat> m_data;
 	
-
 	void draw();
-
 	void drawPoint();
 	void drawShape(int begin, int end, QMatrix4x4 boxTransform);
 	void drawTriangle(int begin, int end, int color);
@@ -121,16 +119,20 @@ public:
 	std::vector<Vec3fShape> vertex;
 	std::vector<Vec3fShape> normal;
 	std::vector<Box> boxList;
-	std::vector<BoxJoint> jointList;
+	std::vector<BoxJoint *> jointList;
 	PointShapeCloud pc;
 	std::vector<std::pair<int, int>> shapeRange;
 	QVector<QVector4D> colorList;
 	cv::Mat grabResult;
 	std::vector<Vec3fShape> normalList;
 	Vec3fShape normalGround;
+	bool bnormalGroundSet;
 	int triangleBegin;
 	int triangleEnd;
 	void shapeDetect(int signForGround = 0);
+	BoxJoint * currentJoint;
+	void DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1);
+	int currentBox;
 
 public slots:
     void setXRotation(int angle);
@@ -141,10 +143,10 @@ public slots:
 	void setCamZRotation(int angle);
 	void setTrans(float dx, float dy, float dz);
 	void meshChanged(int index);
-	void nocoClicked(bool b);
-	void XYClicked(bool b);
-	void YZClicked(bool b);
-	void XZClicked(bool b);
+	void nocoClicked();
+	void XYClicked();
+	void YZClicked();
+	void XZClicked();
     void cleanup();
 	void addMesh(QString name);
 	void addMeshRightClick();
@@ -156,7 +158,9 @@ public slots:
 	void addMeshDoubleClick();
 	void changeDrawShape();
 	void boxTest();
-
+	void jointDoubleClick(const QModelIndex &qm);
+	void jointSliderValueChanged(int);
+	void deleteCurrentBox();
 signals:
     void xRotationChanged(int angle);
     void yRotationChanged(int angle);
@@ -167,8 +171,10 @@ signals:
 	void sliderStepChanged(int scale);
 	void currentMeshChanged(int index);
 	//*************** furniture
-	void jointUpdate(std::vector<BoxJoint> pJointList);
+	void jointUpdate(std::vector<BoxJoint *> pJointList);
 	void boxUpdate(std::vector<Box> pBoxList);
+	void jointSliderChanged(double, double, double);
+	
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;
@@ -206,6 +212,8 @@ private:
 	int matSpecularLoc;
 	int matShineLoc;
 	int m_viewPos;
+	int m_assignedColor;
+	int m_assignedMode;
 	//int m_specificColor;
 	//int m_colorAssigned;
 	//int m_shapeColor;
@@ -225,6 +233,7 @@ private:
 	int interIndex;
 	bool mouseMoved;
 	int drawShapeWithColor;
+	bool doubleClickMask;
 };
 
 #endif

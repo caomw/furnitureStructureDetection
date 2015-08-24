@@ -44,10 +44,15 @@ public:
 	QImage * depthImage;
 	QStandardItemModel * jointStd;
 	QStandardItemModel * boxStd;
+	QTreeView * jointTree;
+	QTreeView *boxTree;
+	QSlider * jointSlider;
 
 public slots:
-	void jointUpdate(std::vector<BoxJoint> pJointList);
+void jointUpdate(std::vector<BoxJoint *> pJointList);
 	void boxUpdate(std::vector<Box> pboxList);
+	void jointDoubleClick(const QModelIndex&);
+	void jointSliderUpdate(double, double, double);
 
 private slots:
 	void openFolder();

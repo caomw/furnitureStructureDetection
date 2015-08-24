@@ -29,7 +29,10 @@ GLWidget::GLWidget(QWidget *parent)
 	  grabResult(480,640,CV_8UC1),
 	  rawPointCount(0),
 	  triangleBegin(0),
-	  triangleEnd(0)
+	  triangleEnd(0),
+	  currentJoint(NULL),
+	  currentBox(-1),
+	  bnormalGroundSet(false)
 {
     //m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -152,25 +155,21 @@ void GLWidget::meshChanged(int index){
 	this->setFocus();
 }
 
-void GLWidget::nocoClicked(bool b){
-	if (b)
-		coord = NoCo;
+void GLWidget::nocoClicked(){
+	coord = NoCo;
 	update();
 }
 
-void GLWidget::XYClicked(bool b){
-	if (b)
-		coord = XY;
+void GLWidget::XYClicked(){
+	coord = XY;
 	update();
 }
-void GLWidget::YZClicked(bool b){
-	if (b)
-		coord = YZ;
+void GLWidget::YZClicked(){
+	coord = YZ;
 	update();
 }
-void GLWidget::XZClicked(bool b){
-	if (b)
-		coord = XZ;
+void GLWidget::XZClicked(){
+	coord = XZ;
 	update();
 }
 void GLWidget::cleanup()
@@ -183,7 +182,7 @@ void GLWidget::cleanup()
 }
 
 static const char *vertexShaderSource =
-    "attribute vec4 vertex;\n"
+    "attribute vec3 vertex;\n"
     "attribute vec3 normal;\n"
 	"attribute vec2 texCoords;\n"
 	"varying vec2 v_texCoord;\n"
@@ -195,11 +194,11 @@ static const char *vertexShaderSource =
     "void main() {\n"
     "   vert = vertex.xyz;\n"
     "   vertNormal = normalMatrix * normal;\n"
-    "   gl_Position = projMatrix * mvMatrix * vertex;\n"
+	"   gl_Position = projMatrix * mvMatrix * vec4(vertex,1.0);\n"
 	"	v_texCoord = texCoords;\n"
     "}\n";
 
-static const char *fragmentShaderSource =
+	static const char *fragmentShaderSource =
 	"varying highp vec3 vert;\n"
 	"varying highp vec3 vertNormal;\n"
 	"varying vec2 v_texCoord;\n"
@@ -208,17 +207,21 @@ static const char *fragmentShaderSource =
 	"uniform vec3 mDiffuse;\n"
 	"uniform vec3 mSpecular;\n"
 	"uniform vec4 fixedColor;\n"
+	"uniform vec4 assignedColor;\n"
 	"uniform float mShininess;\n"
 	"uniform sampler2D s_baseMap;\n"
 	"uniform highp vec3 lightPos;\n"
 	"uniform bool hasTex;\n"
 	"uniform bool fixedPipeline;\n"
+	"uniform bool assignedMode;\n"
 	"void main() {\n"
 	"	if(fixedPipeline){\n"
 	"		gl_FragColor = fixedColor;\n"
 	"		return ;\n"
 	"	}\n"
 	"	vec4 baseColor = texture2D(s_baseMap, v_texCoord);\n"
+	"	if(assignedMode)\n"
+	"		baseColor = assignedColor;\n"
     "   highp vec3 L = normalize(lightPos - vert);\n"
     "   highp float NL = max(dot(normalize(vertNormal), L), 0.0);\n"
 	"   vec3 lightColor = vec3(1.0, 1.0, 1.0);\n"
@@ -234,6 +237,7 @@ static const char *fragmentShaderSource =
 	"		gl_FragColor = baseColor * vec4(result, 1.0);\n"
 	"   else\n"
 	"		gl_FragColor = vec4(result, 1.0);\n"
+	//"		gl_FragColor = vec4(gl_Normal, 1.0);\n"
     "}\n";
 
 void GLWidget::initializeGL()
@@ -267,6 +271,8 @@ void GLWidget::initializeGL()
 	m_hasTex = m_program->uniformLocation("hasTex");
 	m_fixedPipeline = m_program->uniformLocation("fixedPipeline");
 	m_fixedColor = m_program->uniformLocation("fixedColor");
+	m_assignedMode = m_program->uniformLocation("assignedMode");
+	m_assignedColor = m_program->uniformLocation("assignedColor");	
 	matAmbientLoc = m_program->uniformLocation("mAmbient");
 	matDiffuseLoc = m_program->uniformLocation("mDiffuse");
 	matSpecularLoc = m_program->uniformLocation("mSpecular");
@@ -557,6 +563,55 @@ void GLWidget::drawBoxLine(){
 	
 }
 
+void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1){
+
+	Vec3fShape dir(x1-x0, y1-y0, z1-z0);
+	Vec3fShape axis = Vec3fShape(0, 0, 1).cross(dir);
+	dir.normalize();
+	double alpha = acos(dir.dot(Vec3fShape(0, 0, 1)));
+
+	float k = Vec3fShape(x1 - x0, y1 - y0, z1 - z0).length();
+	double CylinderRadius = 0.025 * k;
+	double ConeHeight = 0.1 * k;
+	double ConeRadius = 0.06 * k;
+	double CylinderHeight = k - ConeHeight;
+
+	GLUquadricObj *quadObj;
+	quadObj = gluNewQuadric();
+	gluQuadricDrawStyle(quadObj, GLU_FILL);
+	gluQuadricNormals(quadObj, GLU_SMOOTH);
+	gluQuadricOrientation(quadObj, GLU_OUTSIDE);
+	gluQuadricTexture(quadObj, GL_TRUE);
+	glEnable(GL_COLOR_MATERIAL);
+
+	//glEnable(GL_NORMAL_GEN);
+
+	QMatrix4x4 rotation;
+	rotation.setToIdentity();
+	rotation.rotate(alpha *180.0f / 3.1415926f, axis[0], axis[1], axis[2]);
+
+	QMatrix4x4 trans;
+	trans.setToIdentity();
+	trans.translate(0,0,CylinderHeight);
+
+	QMatrix4x4 pos;
+	pos.setToIdentity();
+	pos.translate(x0,y0,z0);
+		
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera *m_world * pos * rotation);
+	glPushMatrix();
+	gluCylinder(quadObj, CylinderRadius, CylinderRadius, CylinderHeight, 10, 1);
+	gluDisk(quadObj, 0, CylinderRadius, 10, 1);
+	glPopMatrix();
+
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * pos * rotation *trans);
+	glPushMatrix();
+		gluCylinder(quadObj, ConeRadius, 0, ConeHeight, 10, 1);
+		gluDisk(quadObj, CylinderRadius, ConeRadius, 10, 1);
+	glPopMatrix();
+	
+}
+
 void GLWidget::paintGL()
 {
 
@@ -570,7 +625,7 @@ void GLWidget::paintGL()
 		if (rgbMap)
 			texture->setData(*rgbMap);
 	}
-	else
+	else if (shapeColor)
 		texture->setData(*shapeColor);
 
 	texture->bind();
@@ -581,6 +636,8 @@ void GLWidget::paintGL()
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_proj);
     
+	
+
     QMatrix3x3 normalMatrix = m_world.normalMatrix();
     m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
 
@@ -597,17 +654,38 @@ void GLWidget::paintGL()
 	m_world.rotate(180, 0, 1, 0);
 	m_world.translate(0, 0, -1.5);
 
-	
-
 	if (!drawShapeWithColor)
 		drawBoxLine();
 
+	m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 15, 0));
+	m_program->setUniformValue(m_viewPos, eye);
+	m_program->setUniformValue(m_hasTex, true);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
 	m_program->setUniformValue(m_fixedPipeline, false);
+	m_program->setUniformValue(m_assignedMode, true);
+	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
+	m_program->setUniformValue(matAmbientLoc, QVector3D(0.8, 0.8, 0.8));
+	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
+	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
+	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);	
+
+	for (size_t i = 0; i < jointList.size(); i++)
+	{
+		m_program->setUniformValue(m_assignedColor, colorList.at(i));
+		Vec3fShape temp0 = jointList.at(i)->getPivotPoint(0); 
+		Vec3fShape temp1 = jointList.at(i)->getPivotPoint(1);
+		DrawArrow(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2]);
+	}
+
+	m_program->setUniformValue(m_assignedMode, false);
+	
 	for (size_t i = 0; i < boxList.size(); i++)
 		for (size_t j = 0; j < boxList.at(i).shapeRange.size(); j++)
 			drawShape(boxList.at(i).shapeRange.at(j).first, boxList.at(i).shapeRange.at(j).second, boxList.at(i).m_transform);
 
 	m_program->release();
+
+	//glutSolidTeapot(0.3);
 }
 
 void GLWidget::changeDrawShape(){
@@ -814,7 +892,7 @@ void GLWidget::addPointCloud(cv::Mat mask){
 				min = vertex[0];
 				max = vertex[0];
 			}
-			if (vertex[index].length() < 0.000000001)
+			if (vertex[index].length() < 0.001)
 				continue;
 			if (mask.empty())
 				pc.push_back(PointShape(vertex[index], normal[index]));
@@ -843,71 +921,214 @@ void GLWidget::addPointCloud(cv::Mat mask){
 
 }
 
+struct BoxInFile
+{
+	float vertex[8][3];
+};
+
+void readBoxInFile(std::string name, struct BoxInFile ** kp, int * pint)
+{
+	FILE *stream;
+	if ((stream = fopen(name.c_str(), "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	int sizeInt;
+	fread(&sizeInt, sizeof(int), 1, stream);
+	*pint = sizeInt;
+	*kp = (struct BoxInFile *)malloc(sizeInt * sizeof(struct BoxInFile));
+	fread(*kp, sizeof(struct BoxInFile), sizeInt, stream);
+	fclose(stream);
+}
+
+//void GLWidget::boxTest(){
+//	cv::Mat back;
+//
+//	cv::FileStorage fs("data0_ground.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect(1);
+//	shapeRange.clear();
+//	fs.release();
+//
+//	//pc.clear();
+//	//addPointCloud(grabResult);
+//	//shapeDetect();
+//
+//	pc.clear();
+//	fs.open("data0_cabnet.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect();
+//	fs.release();
+//
+//	pc.clear();
+//	fs.open("data0_drawer1.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect();
+//	fs.release();
+//
+//	pc.clear();
+//	fs.open("data0_drawer2.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect();
+//	fs.release();
+//
+//
+//	pc.clear();
+//	fs.open("data0_door1.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect();
+//	fs.release();
+//
+//	pc.clear();
+//	fs.open("data0_door2.xml", cv::FileStorage::READ);
+//	fs["vocabulary"] >> back;
+//	addPointCloud(back);
+//	shapeDetect();
+//	fs.release();
+//
+//	BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
+//	joint1->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
+//	joint1->rotate(90);
+//	joint1->setRange(-180, 180);
+//
+//	BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
+//	joint2->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
+//	joint2->rotate(-90);
+//	joint2->setRange(-180, 180);
+//
+//	BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
+//	joint3->setPivotPoint(boxList.at(1).vertex[1], boxList.at(1).vertex[0]);
+//	joint3->slide(0);
+//	joint3->setRange(-2, 2);
+//
+//	BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
+//	joint4->setPivotPoint(boxList.at(2).vertex[1], boxList.at(2).vertex[0]);
+//	joint4->slide(0);
+//	joint4->setRange(-2, 2);
+//
+//	jointList.push_back(joint1);
+//	jointList.push_back(joint2);
+//	jointList.push_back(joint3);
+//	jointList.push_back(joint4);
+//
+//	emit jointUpdate(jointList);
+//	emit boxUpdate(boxList);
+//
+//	//struct BoxInFile k;
+//	//struct BoxInFile * kp = (struct BoxInFile *)malloc(boxList.size() * sizeof(struct BoxInFile));
+//
+//	//int num = boxList.size();
+//
+//	//for (size_t i = 0; i < boxList.size(); i++)
+//	//{
+//	//	for (size_t j = 0; j < 8; j++)
+//	//	{
+//	//		kp[i].vertex[j][0] = boxList.at(i).vertex[j][0];
+//	//		kp[i].vertex[j][1] = boxList.at(i).vertex[j][1];
+//	//		kp[i].vertex[j][2] = boxList.at(i).vertex[j][2];
+//	//		
+//	//	}
+//	//}
+//
+//	//FILE *stream;
+//	//if ((stream = fopen("data0.box", "wb")) == NULL) /* open file TEST.$$$ */
+//	//{
+//	//	fprintf(stderr, "Cannot open output file.\n");
+//	//	return;
+//	//}
+//	//fwrite(&num, sizeof(num), 1, stream);
+//	//fwrite(kp, sizeof(struct BoxInFile), boxList.size(), stream);
+//	//fclose(stream); 
+//
+//	//struct BoxInFile * ap;
+//	//int numBox;
+//	//readBoxInFile("data0.box", &ap, &numBox);
+//
+//}
 void GLWidget::boxTest(){
 	cv::Mat back;
 
-	cv::FileStorage fs("data0_ground.xml", cv::FileStorage::READ);
+	cv::FileStorage fs("data1_ground.xml", cv::FileStorage::READ);
 	fs["vocabulary"] >> back;
 	addPointCloud(back);
 	shapeDetect(1);
 	shapeRange.clear();
 	fs.release();
 
-	//pc.clear();
-	//addPointCloud(grabResult);
-	//shapeDetect();
-
 	pc.clear();
-	fs.open("data0_cabnet.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
+	addPointCloud(grabResult);
 	shapeDetect();
-	fs.release();
 
-	pc.clear();
-	fs.open("data0_drawer1.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
-
-	pc.clear();
-	fs.open("data0_drawer2.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
-
-
-	pc.clear();
-	fs.open("data0_door1.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
-
-	pc.clear();
-	fs.open("data0_door2.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
-
-	BoxHingeJoint joint1(boxList.at(0),boxList.at(3));
-	joint1.setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
-	joint1.rotate(90);
-
-	BoxHingeJoint joint2(boxList.at(0), boxList.at(4));
-	joint2.setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-	joint2.rotate(-90);
-
-	
-	jointList.push_back(joint1);
-	jointList.push_back(joint2);
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
+}
 
 
+void GLWidget::deleteCurrentBox(){
+	if (currentBox == -1)
+	{
+		return;
+	}
+	std::vector<Box>::iterator it = boxList.begin();
+	for (size_t i = 1; i < currentBox; i++)
+	{
+		it++;
+	}
+	
+	boxList.erase(it);
+	update();
+	currentBox = -1;
+}
+
+
+
+void GLWidget::jointDoubleClick(const QModelIndex & qm){
+	//QMessageBox::information(0, tr("Cannot dock"), tr("Main window already closed"));
+	currentJoint = (jointList.at(qm.row()));
+	doubleClickMask = true;
+	switch (currentJoint->getType())
+	{
+	case BoxJoint::HINGE:{
+		emit jointSliderChanged(currentJoint->getCurrentValue(), currentJoint->getRangeMin(), currentJoint->getRangeMax());
+		break;
+	}
+	case BoxJoint::SLIDER:{
+		emit jointSliderChanged(currentJoint->getCurrentValue(), currentJoint->getRangeMin(), currentJoint->getRangeMax());
+		break;
+	}
+	default:
+		break;
+	}
+	
+}
+
+void GLWidget::jointSliderValueChanged(int pValue){
+	if (doubleClickMask)
+	{
+		doubleClickMask = false;
+		return;
+	}
+	double pos = pValue / 100.0f * (currentJoint->getRangeMax() - currentJoint->getRangeMin()) + currentJoint->getRangeMin();
+	switch (currentJoint->getType())
+	{
+		case BoxJoint::HINGE:{
+		currentJoint->rotate(pos);
+		break;
+		}
+		case BoxJoint::SLIDER:{
+		 currentJoint->slide(pos);
+		 break;
+		}
+	default:
+		break;
+	}
+	update();
 }
 
 
@@ -918,6 +1139,11 @@ const std::pair< MiscLib::RefCountPtr< PrimitiveShape >, size_t > & m2) {
 
 
 void GLWidget::shapeDetect(int signForGround ){
+	if (signForGround && bnormalGroundSet)
+		return;
+	if (signForGround)
+		bnormalGroundSet = true;
+
 
 	//fill or load point cloud from file
 	//...
@@ -1142,8 +1368,8 @@ void GLWidget::shapeDetect(int signForGround ){
 		nBox.shapeRange.push_back(shapeRange.at(i));
 	shapeRange.clear();
 	
-	//addBox(nBox);
 	boxList.push_back(nBox);
+	currentBox = boxList.size();
 	update();
 }
 

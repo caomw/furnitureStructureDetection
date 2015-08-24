@@ -83,6 +83,9 @@
     <ClCompile Include="boxJoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="boxSliderJoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="kinecthello.ui">
@@ -121,6 +124,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="boxHingeJoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="boxSliderJoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

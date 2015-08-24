@@ -16,10 +16,22 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *shapeWidgetAction = new QAction(QIcon("Resources/shape.png"), tr("&Shape"), this);
 	QAction *boxTestWidgetAction = new QAction(QIcon("Resources/box.png"), tr("&Box"), this);
 	QAction *shapeDrawWidgetAction = new QAction(QIcon("Resources/color.png"), tr("&Color"), this);
+	QAction *deleteWidgetAction = new QAction(QIcon("Resources/delete.png"), tr("&Delete"), this);
 
 	openAction->setShortcut(QKeySequence::Open);
 	openAction->setStatusTip(tr("Open a file."));
 	menuWindow->addAction(openAction);
+
+	QAction *coNoAction = new QAction(tr("&No coordinate"), this);
+	QAction *coXYAction = new QAction(tr("&XY coordinate"), this);
+	QAction *coYZAction = new QAction(tr("&YZ coordinate"), this);
+	QAction *coXZAction = new QAction(tr("&XZ coordinate"), this);
+
+	menuWindow->addAction(openAction);
+	menuWindow->addAction(coNoAction);
+	menuWindow->addAction(coXYAction);
+	menuWindow->addAction(coYZAction);
+	menuWindow->addAction(coXZAction);
 
 	toolBar->addAction(widgetAction);
 	toolBar->addAction(brutalModeWidgetAction); 
@@ -28,6 +40,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	toolBar->addAction(shapeWidgetAction);
 	toolBar->addAction(boxTestWidgetAction); 
 	toolBar->addAction(shapeDrawWidgetAction);
+	toolBar->addAction(deleteWidgetAction);
 	toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
 	//center area widget
@@ -84,9 +97,15 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	centerWidget->setLayout(mainLayout);
 
 	connect(openAction, SIGNAL(triggered()), this, SLOT(openFolder()));
+	connect(coNoAction, SIGNAL(triggered()), glWidget, SLOT(nocoClicked()));
+	connect(coXYAction, SIGNAL(triggered()), glWidget, SLOT(XYClicked()));
+	connect(coYZAction, SIGNAL(triggered()), glWidget, SLOT(YZClicked()));
+	connect(coXZAction, SIGNAL(triggered()), glWidget, SLOT(XZClicked()));
+
 	connect(widgetAction, SIGNAL(triggered()), this, SLOT(openFolder()));
 	connect(shapeWidgetAction, SIGNAL(triggered()), this, SLOT(grabResUpdated()));
 	connect(shapeDrawWidgetAction, SIGNAL(triggered()), glWidget, SLOT(changeDrawShape()));
+	connect(deleteWidgetAction, SIGNAL(triggered()), glWidget, SLOT(deleteCurrentBox()));
 	connect(boxTestWidgetAction, SIGNAL(triggered()), glWidget, SLOT(boxTest()));
 	connect(brutalFinishWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeState()));
 	connect(brutalModeWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeSwitch()));
@@ -105,7 +124,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 
 	boxStd = new QStandardItemModel(this);
 	boxStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Boxes"));
-	QTreeView *boxTree = new QTreeView(this);
+	boxTree = new QTreeView(this);
 	boxTree->setModel(boxStd);
 	boxTree->setContextMenuPolicy(Qt::CustomContextMenu);
 	boxGroupLayout->addWidget(boxTree);
@@ -116,12 +135,12 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QGroupBox *jointGroupBox = new QGroupBox(tr("Joints"));
 	jointStd = new QStandardItemModel(this);
 	jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joints"));
-	QTreeView *jointTree = new QTreeView(this);
+	jointTree = new QTreeView(this);
 	jointTree->setModel(jointStd);
 	jointTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	jointGroupLayout->addWidget(jointTree);
-	QSlider * jointSlider;
+
 	jointSlider = new QSlider(Qt::Horizontal, this);
 	jointSlider->setRange(1, 100);
 	jointSlider->setSingleStep(1);
@@ -136,19 +155,35 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	leftSecond->setLayout(leftSecondLayout);
 	leftTab->addTab(leftSecond,tr("Boxes + Joints"));
 
-	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint>)), this, SLOT(jointUpdate(std::vector<BoxJoint>)));
+	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint *>)), this, SLOT(jointUpdate(std::vector<BoxJoint *>)));
 	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>)));
+	connect(jointTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(jointDoubleClick(const QModelIndex)));
+	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double,double,double)));
+	connect(jointSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(jointSliderValueChanged(int)));
 
 	openFolder();
 }
 
-void MainWindow::jointUpdate(std::vector<BoxJoint> pJointList){
+void MainWindow::jointDoubleClick(const QModelIndex & qm){
+	//jointTree->model()->data
+	//qm.row();
+}
+
+void MainWindow::jointSliderUpdate(double value, double min, double max){
+	int pos = (value - min) / (max - min) * 100 +1;
+	jointSlider->setValue(pos);
+	jointSlider->setRange(0, 99);
+	jointSlider->setSingleStep(1);
+	jointSlider->setPageStep(1);
+}
+
+void MainWindow::jointUpdate(std::vector<BoxJoint *> pJointList){
 	jointStd->clear();
 	jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joint"));
 	for (size_t i = 0; i < pJointList.size(); i++)
 	{
 		QStandardItem* itemProject = new QStandardItem(QString("Joint") + QString::number(i));
-		//itemProject->setEditable(false);
+		itemProject->setEditable(false);
 		jointStd->appendRow(itemProject);
 	}
 }
@@ -159,7 +194,7 @@ void MainWindow::boxUpdate(std::vector<Box> pBoxList){
 	for (size_t i = 0; i < pBoxList.size(); i++)
 	{
 		QStandardItem* itemProject = new QStandardItem(QString("Box") + QString::number(i));
-		//itemProject->setEditable(false);
+		itemProject->setEditable(false);
 		boxStd->appendRow(itemProject);
 	}
 }
@@ -169,7 +204,7 @@ void MainWindow::grabResUpdated(/*cv::Mat**/){
 	//glWidget->shapeDetect();
 	//imwrite("back.bmp", rgbWidget->gcapp.binMask);
 
-	//FileStorage fs("data0_drawer1.xml", FileStorage::WRITE);
+	//FileStorage fs("data2_ground.xml", FileStorage::WRITE);
 	//fs << "vocabulary" << rgbWidget->gcapp.binMask;
 	//fs.release();
 
@@ -183,22 +218,22 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 }
 
 void MainWindow::openFolder(){
-//C:\Users\LeslieRong\Desktop\data0
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
 
-	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
-	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
-	//if (openFilePath->exec() == QDialog::Accepted)
-	//{
-	//	//code here£¡
-	//	if (!openFilePath->selectedFiles()[0].isEmpty())
-	//		path = openFilePath->selectedFiles()[0];
-	//	else
-	//		QMessageBox::information(NULL, tr("Empty Path"), tr("You didn't select any path."));
-	//}
-	//delete openFilePath;
-	//if (path.isEmpty())
-	//	return ;
+//	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
+
+	QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
+	openFilePath->setFileMode(QFileDialog::DirectoryOnly);
+	if (openFilePath->exec() == QDialog::Accepted)
+	{
+		//code here£¡
+		if (!openFilePath->selectedFiles()[0].isEmpty())
+			path = openFilePath->selectedFiles()[0];
+		else
+			QMessageBox::information(NULL, tr("Empty Path"), tr("You didn't select any path."));
+	}
+	delete openFilePath;
+	if (path.isEmpty())
+		return ;
 	
 	QDir dir(path);
 
