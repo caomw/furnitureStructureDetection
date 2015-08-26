@@ -12,6 +12,7 @@
 #include <QVector4D>
 #include <opencv\cxcore.h>
 #include <opencv2\highgui\highgui.hpp>
+#include "util.h"
 
 //#pragma comment(lib,"PrimitiveShapes.lib")
 #include "box.h"
@@ -68,6 +69,10 @@ public:
 	Shape * next;
 };
 
+typedef struct vertex{
+	float items[8];
+}fVertex;
+
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
@@ -78,6 +83,7 @@ public:
 	//**************************************	used by another project		**************************************
 	float dpi = 5.0;
 	QVector <GLMmodel *> modelList;
+
 	GLMmodel * addModel(QString name);
 	GLMmodel * removeModel(QString name);
 	modelGuy* currentMesh;
@@ -98,7 +104,7 @@ public:
 	void add(const QVector3D &v, const QVector3D &n);
 	void addV(const QVector3D &v);
 	void addTex(const QVector2D &t);
-	void addBox(Box & b);
+	//void addBox(Box & b);
 	void addPointCloud(cv::Mat mask);
 
 	int coord = XZ;
@@ -132,7 +138,19 @@ public:
 	void shapeDetect(int signForGround = 0);
 	BoxJoint * currentJoint;
 	void DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1);
+	void DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1);
+	void DrawBall(float x0, float y0, float z0, float x1, QMatrix4x4 boxTransform);
+	void DrawTorus(float in, float out);
+	void DrawJoints();
 	int currentBox;
+	int currentSelectBox;
+	int indexParentBox;
+	int indexChildBox;
+	GLMmodel * arrowModel;
+	GLMmodel * arrowStraightModel;
+	GLMmodel * ballModel;
+	void drawPlane(Vec3fShape v1, Vec3fShape v2, Vec3fShape v3, Vec3fShape v4);
+	void drawModel(GLMmodel *);
 
 public slots:
     void setXRotation(int angle);
@@ -159,8 +177,15 @@ public slots:
 	void changeDrawShape();
 	void boxTest();
 	void jointDoubleClick(const QModelIndex &qm);
+	void boxDoubleClick(const QModelIndex &qm);
 	void jointSliderValueChanged(int);
 	void deleteCurrentBox();
+	void parentBoxSelect(int);
+	void childBoxSelect(int);
+	void planeSelect(int);
+	void vertexSelect(int, int);
+	void addConstraint(int);
+
 signals:
     void xRotationChanged(int angle);
     void yRotationChanged(int angle);
@@ -174,7 +199,7 @@ signals:
 	void jointUpdate(std::vector<BoxJoint *> pJointList);
 	void boxUpdate(std::vector<Box> pBoxList);
 	void jointSliderChanged(double, double, double);
-	
+	void boxUpdate(int plane, int point1, int point2);
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;
@@ -214,9 +239,6 @@ private:
 	int m_viewPos;
 	int m_assignedColor;
 	int m_assignedMode;
-	//int m_specificColor;
-	//int m_colorAssigned;
-	//int m_shapeColor;
     QMatrix4x4 m_proj;
     QMatrix4x4 m_camera;
     QMatrix4x4 m_world;

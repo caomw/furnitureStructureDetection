@@ -5,8 +5,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
     QMenuBar *menuBar = new QMenuBar;
     QMenu *menuWindow = menuBar->addMenu(tr("&Window"));
 	QToolBar *toolBar = addToolBar(tr("&TEST"));
-
-
+	QFont ft;
+	ft.setBold(true);
 	//actions of the tool bar
 	QAction *widgetAction = new QAction(QIcon("Resources/open.png"),tr("&Open"), this);
 	QAction *openAction = new QAction(tr("&open"), this);
@@ -62,24 +62,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 
 	connect(grabCutWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(grabCutIteration()));
 	
-
-	//QVBoxLayout *rgb = new QVBoxLayout(this);
-	//rgb->addWidget(rgbWidget);
-
-	//QGroupBox *rgbGroupBox = new QGroupBox(tr("RGB"));
-	//rgbGroupBox->setLayout(rgb);
-
-	//leftLayout->addWidget(rgbGroupBox);
 	leftLayout->addWidget(rgbWidget);
-	//leftLayout->addSpacing(10);
-
-	//QVBoxLayout *depth = new QVBoxLayout(this);
-	//depth->addWidget(depthWidget);
-
-	//QGroupBox *depthGroupBox = new QGroupBox(tr("Depth"));
-	//depthGroupBox->setLayout(depth);
-
-	//leftLayout->addWidget(depthGroupBox);
 	leftLayout->addWidget(depthWidget);
 
 	QWidget* imageWidget = new QWidget(this);
@@ -129,8 +112,118 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	boxTree->setContextMenuPolicy(Qt::CustomContextMenu);
 	boxGroupLayout->addWidget(boxTree);
 	boxGroupBox->setLayout(boxGroupLayout);
+	
+
+	QGroupBox * controlPanel = new  QGroupBox(tr("Control Panel"));
+	QVBoxLayout *controlPanelLayout = new QVBoxLayout(this);
+
+	parentBox = new QComboBox(this);
+	parentBox->setMaximumSize(QSize(180, 30));
+	parentBox->setMinimumSize(QSize(0, 30));
+	//parentBox->setFont(ft);
+
+	childBox = new QComboBox(this);
+	childBox->setMaximumSize(QSize(180, 30));
+	childBox->setMinimumSize(QSize(0, 30));
+	//childBox->setFont(ft);
+
+	jointSlider = new QSlider(Qt::Horizontal, this);
+	jointSlider->setRange(1, 100);
+	jointSlider->setSingleStep(1);
+	jointSlider->setPageStep(1);
+
+	QLabel *sliderLabel = new QLabel("Joint Pose", this);
+	controlPanelLayout->addWidget(sliderLabel);
+	controlPanelLayout->addWidget(jointSlider);
+
+	QHBoxLayout * parentBoxLayout = new QHBoxLayout(this);
+	QLabel *parentLabel = new QLabel("Parent Box Selection", this);
+	parentBoxLayout->addWidget(parentLabel);
+	parentBoxLayout->addWidget(parentBox);
+	controlPanelLayout->addLayout(parentBoxLayout);
+
+	QHBoxLayout * childBoxLayout = new QHBoxLayout(this);
+	QLabel *childLabel = new QLabel("Child Box Selection", this);
+	childBoxLayout->addWidget(childLabel);
+	childBoxLayout->addWidget(childBox);
+	controlPanelLayout->addLayout(childBoxLayout);
+	controlPanel->setLayout(controlPanelLayout);
+	leftSecondLayout->addWidget(controlPanel);
+
+	QHBoxLayout * constraintLayout = new QHBoxLayout(this);
+	QLabel *constraintLabel = new QLabel("Constraint Selection", this);
+	constraintLayout->addWidget(constraintLabel);
+	constraintBox = new QComboBox(this);
+	constraintBox->setMaximumSize(QSize(240, 30));
+	constraintBox->setMinimumSize(QSize(0, 30));
+	constraintBox->addItem("Plane Edge Alignment");
+	constraintBox->addItem("Edge Edge Alignment");
+	constraintBox->addItem("Equal Length");
+	constraintBox->addItem("Set Length");
+	constraintBox->addItem("Rotate Reset");
+
+	constraintLayout->addWidget(constraintBox);
+	controlPanelLayout->addLayout(constraintLayout);
+
+	QPushButton * addConsButton = new QPushButton("Add Constraint", this);
+	controlPanelLayout->addWidget(addConsButton);
+
+
+	//******************************************selection group******************************************
+	QVBoxLayout *selectGroupLayout = new QVBoxLayout(this);
+	QGroupBox *selectGroupBox = new QGroupBox(tr("Selection"));
+
+	QLabel * vertexSetLabel = new QLabel(QString("Vertex: "), this);
+	vertexSetLabel->setFont(ft);
+	
+	QLabel * vertexLabel[8];
+	for (size_t i = 0; i < 8; i++)
+	{
+		vertexCheck[i] = new QCheckBox(this);
+		vertexLabel[i] = new QLabel(QString("Vertex ") + QString::number(i), this);
+	}
+	QHBoxLayout* checkLayout1 = new QHBoxLayout(this);
+	QHBoxLayout* checkLayout2 = new QHBoxLayout(this);
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		checkLayout1->addWidget(vertexLabel[i]);
+		checkLayout1->addWidget(vertexCheck[i]);
+		checkLayout2->addWidget(vertexLabel[4 + i]);
+		checkLayout2->addWidget(vertexCheck[4 + i]);
+
+	}
+	QLabel * planeSetLabel = new QLabel(QString("Plane: "), this);
+	planeSetLabel->setFont(ft);
+	planeSelectBox = new QComboBox(this);
+	planeSelectBox->setMaximumSize(QSize(180, 30));
+	planeSelectBox->setMinimumSize(QSize(0, 30));
+
+	for (size_t i = 0; i < 6; i++)
+	{
+		planeSelectBox->addItem(QString("Plane ") + QString::number(i));
+	}
+
+	selectGroupLayout->addWidget(vertexSetLabel);
+	selectGroupLayout->addLayout(checkLayout1);
+	selectGroupLayout->addLayout(checkLayout2);
+	selectGroupLayout->addSpacing(10);
+	QHBoxLayout * planeSetLayout = new QHBoxLayout(this);
+
+	planeSetLayout->addWidget(planeSetLabel);
+	planeSetLayout->addWidget(planeSelectBox);
+	selectGroupLayout->addLayout(planeSetLayout);
+	selectGroupBox->setLayout(selectGroupLayout);
+
+	QPushButton * submitButton = new QPushButton("Submit", this);
+	selectGroupLayout->addWidget(submitButton);
+	leftSecondLayout->addWidget(selectGroupBox);
+
+	//************************************************************************************
+
 
 	leftSecondLayout->addWidget(boxGroupBox);
+
 	QVBoxLayout *jointGroupLayout = new QVBoxLayout(this);
 	QGroupBox *jointGroupBox = new QGroupBox(tr("Joints"));
 	jointStd = new QStandardItemModel(this);
@@ -140,13 +233,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	jointTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	jointGroupLayout->addWidget(jointTree);
-
-	jointSlider = new QSlider(Qt::Horizontal, this);
-	jointSlider->setRange(1, 100);
-	jointSlider->setSingleStep(1);
-	jointSlider->setPageStep(1);
-
-	jointGroupLayout->addWidget(jointSlider);
+	//jointGroupLayout->addWidget(jointSlider);
 
 	jointGroupBox->setLayout(jointGroupLayout);
 	leftSecondLayout->addWidget(jointGroupBox);
@@ -158,10 +245,76 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint *>)), this, SLOT(jointUpdate(std::vector<BoxJoint *>)));
 	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>)));
 	connect(jointTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(jointDoubleClick(const QModelIndex)));
+	connect(boxTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(boxDoubleClick(const QModelIndex)));
+
 	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double,double,double)));
 	connect(jointSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(jointSliderValueChanged(int)));
+	connect(submitButton, SIGNAL(clicked()), this, SLOT(selectSubmit()));
+	connect(parentBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(parentBoxSelect(int)));
+	connect(childBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(childBoxSelect(int)));
+	//connect(planeSelectBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(planeSelect(int)));
+	connect(this, SIGNAL(planeSelect(int)), glWidget, SLOT(planeSelect(int)));
+	connect(addConsButton, SIGNAL(clicked()), this, SLOT(addConstraint()));
+	connect(this, SIGNAL(addConstraint(int)), glWidget, SLOT(addConstraint(int)));
+	connect(this, SIGNAL(vertexSelect(int,int)), glWidget, SLOT(vertexSelect(int,int)));
+	connect(glWidget, SIGNAL(boxUpdate(int, int, int)), this, SLOT(boxUpdate(int, int, int)));
 
+	for (size_t i = 0; i < 8; i++)
+	{
+		connect(vertexCheck[i], SIGNAL(clicked()), this, SLOT(checkCheck()));
+	}
 	openFolder();
+}
+
+void MainWindow::addConstraint(){
+	emit addConstraint(constraintBox->currentIndex());
+}
+
+void MainWindow::selectSubmit(){
+	int size = 0;
+	int index[2];
+	for (size_t i = 0; i < 8; i++)
+	{
+		if (vertexCheck[i]->isChecked()){
+			size++;
+			if (size == 1)
+				index[0] = i;
+			else
+				index[1] = i;
+		}
+	}
+
+	if (size > 2)
+	{
+		QMessageBox::information(0, tr("Please select 2 points."), tr("Please select 2 points."));
+	}
+	else if (size == 2)
+	{
+		emit vertexSelect(index[0], 0);
+		emit vertexSelect(index[1], 1);
+		emit planeSelect(planeSelectBox->currentIndex());
+	}
+
+}
+
+void MainWindow::boxUpdate(int plane, int point1, int point2){
+	if (plane == -1 || point1 == -1 || point2 == -1){
+		QMessageBox::information(0, tr("Not set."), tr("Please set the points and plane selected."));
+		for (size_t i = 0; i < 8; i++)
+			vertexCheck[i]->setChecked(false);
+		return;
+	}
+	planeSelectBox->setCurrentIndex(plane);
+	for (size_t i = 0; i < 8; i++)
+		vertexCheck[i]->setChecked(false);
+	vertexCheck[point1]->setChecked(true);
+	vertexCheck[point2]->setChecked(true);
+
+}
+
+void MainWindow::checkCheck(){
+
+	
 }
 
 void MainWindow::jointDoubleClick(const QModelIndex & qm){
@@ -191,12 +344,18 @@ void MainWindow::jointUpdate(std::vector<BoxJoint *> pJointList){
 void MainWindow::boxUpdate(std::vector<Box> pBoxList){
 	boxStd->clear();
 	boxStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Box"));
+	parentBox->clear();
+	childBox->clear();
 	for (size_t i = 0; i < pBoxList.size(); i++)
 	{
 		QStandardItem* itemProject = new QStandardItem(QString("Box") + QString::number(i));
 		itemProject->setEditable(false);
 		boxStd->appendRow(itemProject);
+
+		parentBox->addItem(QString("box") + QString::number(i));
+		childBox->addItem(QString("box") + QString::number(i));
 	}
+
 }
 
 void MainWindow::grabResUpdated(/*cv::Mat**/){
@@ -219,21 +378,21 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-//	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
 
-	QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
-	openFilePath->setFileMode(QFileDialog::DirectoryOnly);
-	if (openFilePath->exec() == QDialog::Accepted)
-	{
-		//code here£¡
-		if (!openFilePath->selectedFiles()[0].isEmpty())
-			path = openFilePath->selectedFiles()[0];
-		else
-			QMessageBox::information(NULL, tr("Empty Path"), tr("You didn't select any path."));
-	}
-	delete openFilePath;
-	if (path.isEmpty())
-		return ;
+	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
+	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
+	//if (openFilePath->exec() == QDialog::Accepted)
+	//{
+	//	//code here£¡
+	//	if (!openFilePath->selectedFiles()[0].isEmpty())
+	//		path = openFilePath->selectedFiles()[0];
+	//	else
+	//		QMessageBox::information(NULL, tr("Empty Path"), tr("You didn't select any path."));
+	//}
+	//delete openFilePath;
+	//if (path.isEmpty())
+	//	return ;
 	
 	QDir dir(path);
 

@@ -22,6 +22,9 @@
 #include <QFileDialog>
 #include <QStandardItemModel>
 #include <QTreeView>
+#include <QPushButton>
+#include <QLabel>
+#include <QCheckBox>
 #include "paintwidget.h"
 #include "glwidget.h"
 #include "opencv2/highgui/highgui.hpp"
@@ -47,16 +50,30 @@ public:
 	QTreeView * jointTree;
 	QTreeView *boxTree;
 	QSlider * jointSlider;
+	QComboBox * parentBox;
+	QComboBox * childBox;
+	QComboBox * planeSelectBox;
+	QComboBox * constraintBox;
+	QCheckBox * vertexCheck[8];
+
+signals:
+	void vertexSelect(int,int);
+	void planeSelect(int);
+	void addConstraint(int);
 
 public slots:
 void jointUpdate(std::vector<BoxJoint *> pJointList);
 	void boxUpdate(std::vector<Box> pboxList);
 	void jointDoubleClick(const QModelIndex&);
 	void jointSliderUpdate(double, double, double);
+	void boxUpdate(int,int,int);
+	void addConstraint();
 
 private slots:
 	void openFolder();
 	void grabResUpdated();
+	void checkCheck();
+	void selectSubmit();
 
 private:
 	QString path;
