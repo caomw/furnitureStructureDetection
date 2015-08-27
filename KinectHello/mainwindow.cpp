@@ -17,6 +17,9 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *boxTestWidgetAction = new QAction(QIcon("Resources/box.png"), tr("&Box"), this);
 	QAction *shapeDrawWidgetAction = new QAction(QIcon("Resources/color.png"), tr("&Color"), this);
 	QAction *deleteWidgetAction = new QAction(QIcon("Resources/delete.png"), tr("&Delete"), this);
+	
+	QAction *saveWidgetAction = new QAction(QIcon("Resources/save.png"), tr("&Save"), this);
+	QAction *readWidgetAction = new QAction(QIcon("Resources/load.png"), tr("&Load"), this);
 
 	openAction->setShortcut(QKeySequence::Open);
 	openAction->setStatusTip(tr("Open a file."));
@@ -41,6 +44,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	toolBar->addAction(boxTestWidgetAction); 
 	toolBar->addAction(shapeDrawWidgetAction);
 	toolBar->addAction(deleteWidgetAction);
+	toolBar->addAction(saveWidgetAction);
+	toolBar->addAction(readWidgetAction);
 	toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
 	//center area widget
@@ -89,6 +94,9 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(shapeWidgetAction, SIGNAL(triggered()), this, SLOT(grabResUpdated()));
 	connect(shapeDrawWidgetAction, SIGNAL(triggered()), glWidget, SLOT(changeDrawShape()));
 	connect(deleteWidgetAction, SIGNAL(triggered()), glWidget, SLOT(deleteCurrentBox()));
+	connect(saveWidgetAction, SIGNAL(triggered()), glWidget, SLOT(save()));
+	connect(readWidgetAction, SIGNAL(triggered()), glWidget, SLOT(read()));
+	
 	connect(boxTestWidgetAction, SIGNAL(triggered()), glWidget, SLOT(boxTest()));
 	connect(brutalFinishWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeState()));
 	connect(brutalModeWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeSwitch()));

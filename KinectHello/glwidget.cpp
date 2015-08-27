@@ -344,6 +344,157 @@ void GLWidget::initializeGL()
 	glmVN(arrowStraightModel);
 	glmVN(ballModel);
 	m_program->release();
+
+}
+
+void GLWidget::save(){
+
+	int num = m_data.size();
+
+	//***********save rendering buffer data
+	FILE *stream;
+	if ((stream = fopen("m_data.data", "wb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+
+	fwrite(&num, sizeof(num), 1, stream);
+	fwrite(m_data.data(), sizeof(float) * num, 1, stream);
+	fclose(stream); 
+
+	//************save box list
+	num = boxList.size();
+	if ((stream = fopen("boxList.data", "wb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	fwrite(&num, sizeof(num), 1, stream);
+	for (size_t i = 0; i <boxList.size(); i++)
+	{
+		fwrite(&boxList.at(i), sizeof(Box), 1, stream);
+		int shape_num = boxList.at(i).shapeRange->size();
+		fwrite(&shape_num, sizeof(shape_num), 1, stream);
+		int begin, end;
+		for (size_t j = 0; j < boxList.at(i).shapeRange->size(); j++)
+		{
+			begin = boxList.at(i).shapeRange->at(j).first;
+			end = boxList.at(i).shapeRange->at(j).second;
+			fwrite(&begin, sizeof(begin), 1, stream);
+			fwrite(&end, sizeof(end), 1, stream);
+
+		}
+	}
+	fclose(stream);
+
+	//**************save the joints
+	num = jointList.size();
+	if ((stream = fopen("jointList.data", "wb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	fwrite(&num, sizeof(num), 1, stream);
+	for (size_t i = 0; i <jointList.size(); i++)
+	{
+		fwrite(jointList.at(i), sizeof(BoxJoint), 1, stream);
+	}
+	fclose(stream);
+}
+
+void GLWidget::read(){
+
+	FILE *stream;
+	if ((stream = fopen("m_data.data", "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	int size;
+	fread(&size, sizeof(int), 1, stream);
+	float * read_m_data = (float *)malloc(size * sizeof(float));
+	fread(read_m_data, size * sizeof(float), 1, stream);
+	fclose(stream);
+
+	m_data.clear();
+	m_count = 0;
+
+	m_data.reserve(size);
+	for (size_t i = 0; i < size; i++)
+	{
+		m_data.push_back(read_m_data[i]);
+	}
+	m_count = size;
+
+
+	if ((stream = fopen("boxList.data", "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	fread(&size, sizeof(int), 1, stream);
+	Box * read_box = (Box *)malloc(sizeof(Box));
+	boxList.clear();
+
+	for (size_t i = 0; i < size; i++)
+	{
+		fread(read_box, sizeof(Box), 1, stream);
+		Box temp(*read_box);
+		boxList.push_back(temp);
+		boxList.at(i).shapeRange = new std::vector<std::pair<int, int>>;
+
+		int shape_num;
+		fread(&shape_num, sizeof(shape_num), 1, stream);
+		int begin, end;
+
+		for (size_t j = 0; j < shape_num; j++)
+		{
+			fread(&begin, sizeof(begin), 1, stream);
+			fread(&end, sizeof(end), 1, stream);
+			boxList.at(i).shapeRange->push_back(std::make_pair(begin, end));
+		}
+	}
+	fclose(stream);
+
+	if ((stream = fopen("jointList.data", "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+
+	fread(&size, sizeof(int), 1, stream);
+	for (size_t i = 0; i < jointList.size(); i++)
+	{
+		jointList.at(i)->~BoxJoint();
+	}
+	jointList.clear();
+
+	BoxJoint * read_joint = (BoxJoint *)malloc(sizeof(BoxJoint));
+	BoxJoint * jointTemp;
+	BoxJoint * jointTarget;
+	for (size_t i = 0; i < size; i++)
+	{
+		fread(read_joint, sizeof(BoxJoint), 1, stream);
+		jointTemp = new BoxJoint(*read_joint);
+		if (jointTemp->getType() == BoxJoint::HINGE)
+		{
+			jointTarget = new BoxHingeJoint(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
+		}
+		else if (jointTemp->getType() == BoxJoint::SLIDER){
+			jointTarget = new BoxSliderJoint(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
+		}
+		jointTarget->setPivotPoint(jointTemp->getPivotPoint(0), jointTemp->getPivotPoint(1));
+		jointTarget->setBoxIndex(jointTemp->iParent, jointTemp->iChild);
+		jointTarget->setRange(jointTemp->valueRange[0], jointTemp->valueRange[1]);
+		//jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
+		jointList.push_back(jointTarget);
+	}
+	fclose(stream);
+	
+	update();
+	emit jointUpdate(jointList);
+	emit boxUpdate(boxList);
 }
 
 bool GLWidget::loadTexture(GLMmodel* model){
@@ -779,8 +930,8 @@ void GLWidget::paintGL()
 	m_program->setUniformValue(m_assignedMode, false);
 	
 	for (size_t i = 0; i < boxList.size(); i++)
-		for (size_t j = 0; j < boxList.at(i).shapeRange.size(); j++)
-			drawShape(boxList.at(i).shapeRange.at(j).first, boxList.at(i).shapeRange.at(j).second, boxList.at(i).m_transform);
+		for (size_t j = 0; j < boxList.at(i).shapeRange->size(); j++)
+			drawShape(boxList.at(i).shapeRange->at(j).first, boxList.at(i).shapeRange->at(j).second, boxList.at(i).m_transform);
 
 	m_program->release();
 }
@@ -1117,22 +1268,26 @@ void GLWidget::boxTest(){
 	fs.release();
 
 	BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
-	joint1->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
+	joint1->setPivotPoint(boxList.at(3).vertex[2], boxList.at(3).vertex[6]);
+	joint1->setBoxIndex(0,3);
 	//joint1->rotate(90);
 	joint1->setRange(-180, 180);
 
 	BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
 	joint2->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
 	//joint2->rotate(-90);
+	joint2->setBoxIndex(0, 4);
 	joint2->setRange(-180, 180);
 
 	BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
 	joint3->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
+	joint3->setBoxIndex(0, 1);
 	joint3->slide(0);
 	joint3->setRange(-2, 2);
 
 	BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
 	joint4->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
+	joint4->setBoxIndex(0, 2);
 	joint4->slide(0);
 	joint4->setRange(-2, 2);
 
@@ -1183,7 +1338,7 @@ void GLWidget::boxTest(){
 //	fs["vocabulary"] >> back;
 //	addPointCloud(back);
 //	shapeDetect(1);
-//	shapeRange.clear();
+//	shapeRange->clear();
 //	fs.release();
 //
 //	pc.clear();
@@ -1523,7 +1678,7 @@ void GLWidget::shapeDetect(int signForGround ){
 
 	Box nBox(center, pnormal, pmax, pmin);
 	for (size_t i = 0; i < shapeRange.size(); i++)
-		nBox.shapeRange.push_back(shapeRange.at(i));
+		nBox.shapeRange->push_back(shapeRange.at(i));
 	shapeRange.clear();
 	
 	boxList.push_back(nBox);

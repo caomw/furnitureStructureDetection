@@ -185,6 +185,8 @@ public slots:
 	void planeSelect(int);
 	void vertexSelect(int, int);
 	void addConstraint(int);
+	void save();
+	void read();
 
 signals:
     void xRotationChanged(int angle);
