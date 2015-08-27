@@ -152,8 +152,16 @@ public:
 	void drawPlane(Vec3fShape v1, Vec3fShape v2, Vec3fShape v3, Vec3fShape v4);
 	void drawModel(GLMmodel *);
 	bool bEditLength;
+	bool bMoveBox;
 	int iEditLength;
 	double fixedLength;
+	Vec3fShape fixedPos[8];
+	bool bDrawJoint;
+	int eyeAtMode;
+	Vec3fShape boxCenter;
+	bool setThisBoxCenter;
+	QMatrix4x4 sendCenter;
+	
 
 public slots:
     void setXRotation(int angle);
@@ -162,7 +170,7 @@ public slots:
 	void setCamXRotation(int angle);
 	void setCamYRotation(int angle);
 	void setCamZRotation(int angle);
-	void setTrans(float dx, float dy, float dz);
+	void setTrans(float dx, float dy, float dz, int mode);
 	void meshChanged(int index);
 	void nocoClicked();
 	void XYClicked();
@@ -191,6 +199,7 @@ public slots:
 	void addConstraint(int);
 	void save();
 	void read();
+	void drawJoint();
 
 signals:
     void xRotationChanged(int angle);

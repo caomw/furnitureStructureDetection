@@ -8,7 +8,8 @@
 #include <math.h>
 
 #define T(x) (model->triangles[(x)])
-
+std::string filePath = std::string("Resources/data1/");
+std::string fileHead = std::string("data1");
 VEC3D vec3fShape2VEC3D(Vec3fShape v){
 	return VEC3D(v[0], v[1], v[2]);
 }
@@ -40,7 +41,10 @@ GLWidget::GLWidget(QWidget *parent)
 	  currentBox(-1),
 	  bnormalGroundSet(false),
 	  currentSelectBox(-1),
-	  bEditLength(false)
+	  bEditLength(false),
+	  bDrawJoint(true),
+	  eyeAtMode(0),
+	  boxCenter(0,0,0)
 {
     //m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -58,6 +62,8 @@ GLWidget::GLWidget(QWidget *parent)
 	colorList.push_back(QVector4D(0.729, 0.004f, 1.0f,1.0));
 	colorList.push_back(QVector4D(0.639, 0.376f, 0.594f,1.0));
 	colorList.push_back(QVector4D(1.0, 0.310f, 0.322f,1.0));
+	setThisBoxCenter = false;
+	sendCenter.setToIdentity();
 }
 
 GLWidget::~GLWidget()
@@ -350,12 +356,24 @@ void GLWidget::initializeGL()
 }
 
 void GLWidget::save(){
-
-	int num = m_data.size();
-
-	//***********save rendering buffer data
 	FILE *stream;
-	if ((stream = fopen("m_data.data", "wb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen((filePath + std::string("centerMatrix.data")).c_str(), "wb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	//fwrite(&num, sizeof(num), 1, stream);
+	//for (size_t i = 0; i <jointList.size(); i++)
+	//{
+	//	fwrite(jointList.at(i), sizeof(BoxJoint), 1, stream);
+	//}
+	fwrite(&sendCenter, sizeof(QMatrix4x4), 1, stream);
+	fclose(stream);
+	return;
+	int num = m_data.size();
+	//***********save rendering buffer data
+	
+	if ((stream = fopen((filePath + std::string("m_data.data")).c_str(), "wb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -367,7 +385,7 @@ void GLWidget::save(){
 
 	//************save box list
 	num = boxList.size();
-	if ((stream = fopen("boxList.data", "wb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen((filePath + std::string("boxList.data")).c_str(), "wb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -392,7 +410,7 @@ void GLWidget::save(){
 
 	//**************save the joints
 	num = jointList.size();
-	if ((stream = fopen("jointList.data", "wb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen((filePath + std::string("jointList.data")).c_str(), "wb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -408,7 +426,8 @@ void GLWidget::save(){
 void GLWidget::read(){
 
 	FILE *stream;
-	if ((stream = fopen("m_data.data", "rb")) == NULL) /* open file TEST.$$$ */
+
+	if ((stream = fopen((filePath + std::string("m_data.data")).c_str(), "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -429,8 +448,7 @@ void GLWidget::read(){
 	}
 	m_count = size;
 
-
-	if ((stream = fopen("boxList.data", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen((filePath + std::string("boxList.data")).c_str(), "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -459,7 +477,7 @@ void GLWidget::read(){
 	}
 	fclose(stream);
 
-	if ((stream = fopen("jointList.data", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen((filePath + std::string("jointList.data")).c_str(), "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -494,6 +512,16 @@ void GLWidget::read(){
 	}
 	fclose(stream);
 	
+	if ((stream = fopen((filePath + std::string("centerMatrix.data")).c_str(), "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	QMatrix4x4 * newMat = new QMatrix4x4();
+	fread(newMat, sizeof(QMatrix4x4), 1, stream);
+	sendCenter = *newMat;
+	fclose(stream);
+
 	update();
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
@@ -823,7 +851,7 @@ void GLWidget::DrawJoints(){
 
 	for (size_t i = 0; i < jointList.size(); i++)
 	{
-		m_program->setUniformValue(m_assignedColor, colorList.at(i));
+		//m_program->setUniformValue(m_assignedColor, colorList.at(i));
 		Vec3fShape temp0 = jointList.at(i)->getPivotPoint(0);
 		Vec3fShape temp1 = jointList.at(i)->getPivotPoint(1);
 		if (jointList.at(i)->getType() == BoxJoint::HINGE)
@@ -865,6 +893,11 @@ void GLWidget::DrawJoints(){
 	}
 }
 
+void GLWidget::drawJoint(){
+	bDrawJoint = !bDrawJoint;
+}
+
+
 void GLWidget::paintGL()
 {
 
@@ -897,19 +930,40 @@ void GLWidget::paintGL()
 
 	drawcoordinate(m_program, coord, m_world, m_fixedColor);
 	
+	
+
+	if (setThisBoxCenter)
+	{
+		sendCenter.setToIdentity();
+		sendCenter.translate(-boxCenter[0], -boxCenter[1], -boxCenter[2]);
+		setThisBoxCenter = false;
+	}
+	
 	m_world.rotate(m_xRot / 16.0f, 1, 0, 0);
 	m_world.rotate(m_yRot / 16.0f, 0, 1, 0);
 	m_world.rotate(m_zRot / 16.0f, 0, 0, 1);
 	
 	m_world.rotate(180, 0, 0, 1);
 	m_world.rotate(180, 0, 1, 0);
-	m_world.translate(0, 0, -1.5);
+	m_world = m_world * sendCenter;
 
 	if (!drawShapeWithColor)
 		drawBoxLine();
+	if (bDrawJoint)
+		DrawJoints();
 
-	DrawJoints();
 
+	m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 15, 0));
+	m_program->setUniformValue(m_viewPos, eye);
+	m_program->setUniformValue(m_hasTex, true);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
+	m_program->setUniformValue(m_fixedPipeline, false);
+	m_program->setUniformValue(m_assignedMode, true);
+	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
+	m_program->setUniformValue(matAmbientLoc, QVector3D(0.5, 0.5, 0.5));
+	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
+	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
+	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
 	for (size_t i = 0; i < boxList.size(); i++){
 		if (i != indexParentBox && i != indexChildBox)
 			continue;
@@ -1222,81 +1276,85 @@ void readBoxInFile(std::string name, struct BoxInFile ** kp, int * pint)
 void GLWidget::boxTest(){
 	cv::Mat back;
 
-	cv::FileStorage fs("data0_ground.xml", cv::FileStorage::READ);
+	cv::FileStorage fs((fileHead + std::string("_ground.xml")).c_str(), cv::FileStorage::READ);
 	fs["vocabulary"] >> back;
 	addPointCloud(back);
 	shapeDetect(1);
 	shapeRange.clear();
 	fs.release();
 
-	//pc.clear();
-	//addPointCloud(grabResult);
-	//shapeDetect();
-
 	pc.clear();
-	fs.open("data0_cabnet.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
+	addPointCloud(grabResult);
 	shapeDetect();
-	fs.release();
 
-	pc.clear();
-	fs.open("data0_drawer1.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
+	////pc.clear();
+	////fs.open("data0_cabnet.xml", cv::FileStorage::READ);
+	////fs["vocabulary"] >> back;
+	////addPointCloud(back);
+	////shapeDetect();
+	////fs.release();
 
-	pc.clear();
-	fs.open("data0_drawer2.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
+	////pc.clear();
+	////fs.open("data0_drawer1.xml", cv::FileStorage::READ);
+	////fs["vocabulary"] >> back;
+	////addPointCloud(back);
+	////shapeDetect();
+	////fs.release();
+
+	////pc.clear();
+	////fs.open("data0_drawer2.xml", cv::FileStorage::READ);
+	////fs["vocabulary"] >> back;
+	////addPointCloud(back);
+	////shapeDetect();
+	////fs.release();
 
 
-	pc.clear();
-	fs.open("data0_door1.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
+	////pc.clear();
+	////fs.open("data0_door1.xml", cv::FileStorage::READ);
+	////fs["vocabulary"] >> back;
+	////addPointCloud(back);
+	////shapeDetect();
+	////fs.release();
 
-	pc.clear();
-	fs.open("data0_door2.xml", cv::FileStorage::READ);
-	fs["vocabulary"] >> back;
-	addPointCloud(back);
-	shapeDetect();
-	fs.release();
+	////pc.clear();
+	////fs.open("data0_door2.xml", cv::FileStorage::READ);
+	////fs["vocabulary"] >> back;
+	////addPointCloud(back);
+	////shapeDetect();
+	////fs.release();
 
-	BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
-	joint1->setPivotPoint(boxList.at(3).vertex[2], boxList.at(3).vertex[6]);
-	joint1->setBoxIndex(0,3);
-	//joint1->rotate(90);
-	joint1->setRange(-180, 180);
+	//BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
+	//joint1->setPivotPointIndex(2,6);
+	////joint1->setPivotPoint(boxList.at(3).vertex[2], boxList.at(3).vertex[6]);
+	//joint1->setBoxIndex(0,3);
+	////joint1->rotate(90);
+	//joint1->setRange(-180, 180);
 
-	BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
-	joint2->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-	//joint2->rotate(-90);
-	joint2->setBoxIndex(0, 4);
-	joint2->setRange(-180, 180);
+	//BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
+	//joint2->setPivotPointIndex(3, 7);
+	////joint2->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
+	////joint2->rotate(-90);
+	//joint2->setBoxIndex(0, 4);
+	//joint2->setRange(-180, 180);
 
-	BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
-	joint3->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
-	joint3->setBoxIndex(0, 1);
-	joint3->slide(0);
-	joint3->setRange(-2, 2);
+	//BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
+	//joint3->setPivotPointIndex(0, 1);
+	////joint3->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
+	//joint3->setBoxIndex(0, 1);
+	//joint3->slide(0);
+	//joint3->setRange(-2, 2);
 
-	BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
-	joint4->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
-	joint4->setBoxIndex(0, 2);
-	joint4->slide(0);
-	joint4->setRange(-2, 2);
+	//BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
+	//joint4->setPivotPointIndex(0,1);
+	////joint4->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
+	//joint4->setBoxIndex(0, 2);
+	//joint4->slide(0);
+	//joint4->setRange(-2, 2);
 
-	jointList.push_back(joint1);
-	jointList.push_back(joint2);
-	jointList.push_back(joint3);
-	jointList.push_back(joint4);
+	//jointList.push_back(joint1);
+	//jointList.push_back(joint2);
+	//jointList.push_back(joint3);
+	//jointList.push_back(joint4);
 
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
@@ -1445,78 +1503,118 @@ void GLWidget::jointSliderValueChanged(int pValue){
 }
 
 void GLWidget::editSliderValueChanged(int pValue){
-	if (!bEditLength)
-		return;
+	if (bEditLength){
+		Vec3fShape point1, point2;
+		int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
+		switch (targetPlaneIndex)
+		{
+		case 0:
+			targetPlaneIndex = 1;
+			break;
+		case 1:
+			targetPlaneIndex = 0;
+			break;
+		case 2:
+			targetPlaneIndex = 3;
+			break;
+		case 3:
+			targetPlaneIndex = 2;
+			break;
+		case 4:
+			targetPlaneIndex = 5;
+			break;
+		case 5:
+			targetPlaneIndex = 4;
+			break;
+		default:
+			break;
+		}
 
-	Vec3fShape point1, point2;
+		point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0);
+		point2 = boxList.at(indexChildBox).getPlane(1);
+		if (iEditLength)
+		{
+			iEditLength--;
+			fixedLength = (point1 - point2).length();
+			return;
+		}
 
+		double length = fixedLength + (pValue) / 500.0;
+		if (length<0)
+			return;
 
-	
-	//point1 = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]];
-	//point2 = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[1]];
-	//double length = (point1 - point2).length();
-	int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
-	switch (targetPlaneIndex)
-	{
-	case 0:
-		targetPlaneIndex = 1;
-		break;
-	case 1:
-		targetPlaneIndex = 0;
-		break;
-	case 2:
-		targetPlaneIndex = 3;
-		break;
-	case 3:
-		targetPlaneIndex = 2;
-		break;
-	case 4:
-		targetPlaneIndex = 5;
-		break;
-	case 5:
-		targetPlaneIndex = 4;
-		break;
-	default:
-		break;
+		Vec3fShape len = (point2 - point1);
+		len = -boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + boxList.at(indexChildBox).getPlane(1);
+		len.normalize();
+
+		boxList.at(indexChildBox).getPlane(1) =
+			boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + len *length;
+
+		len = -boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + boxList.at(indexChildBox).getPlane(0);
+		len.normalize();
+		boxList.at(indexChildBox).getPlane(0) =
+			boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + len *length;
+
+		len = -boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + boxList.at(indexChildBox).getPlane(3);
+		len.normalize();
+		boxList.at(indexChildBox).getPlane(3) =
+			boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + len *length;
+
+		len = -boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + boxList.at(indexChildBox).getPlane(2);
+		len.normalize();
+		boxList.at(indexChildBox).getPlane(2) =
+			boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + len *length;
 	}
-
-	point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex,0);
-	point2 = boxList.at(indexChildBox).getPlane(1);
-	//double length = (point1 - point2).length();
-	if (iEditLength)
+	if (bMoveBox)
 	{
-		iEditLength--;
-		fixedLength = (point1 - point2).length();
-		return;
+		Vec3fShape point1, point2;
+		int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
+		switch (targetPlaneIndex)
+		{
+		case 0:
+			targetPlaneIndex = 1;
+			break;
+		case 1:
+			targetPlaneIndex = 0;
+			break;
+		case 2:
+			targetPlaneIndex = 3;
+			break;
+		case 3:
+			targetPlaneIndex = 2;
+			break;
+		case 4:
+			targetPlaneIndex = 5;
+			break;
+		case 5:
+			targetPlaneIndex = 4;
+			break;
+		default:
+			break;
+		}
+
+		point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0);
+		point2 = boxList.at(indexChildBox).getPlane(1);
+		if (iEditLength)
+		{
+			iEditLength--;
+			for (size_t i = 0; i < 8; i++)
+			{
+				fixedPos[i] = boxList.at(indexChildBox).vertex[i];
+			}
+			return;
+		}
+
+		double length = (pValue) / 500.0;
+
+		Vec3fShape len = (point2 - point1);
+		//len = -boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + boxList.at(indexChildBox).getPlane(1);
+		//len.normalize();
+		for (size_t i = 0; i < 8; i++)
+		{
+			boxList.at(indexChildBox).vertex[i] = fixedPos[i] + len * length;
+		}
 	}
-
-	double length = fixedLength + (pValue) / 500.0;
-	if (length<0)
-	{
-		return;
-	}
-
-	Vec3fShape len = (point2 - point1);
-	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + boxList.at(indexChildBox).getPlane(1);
-	len.normalize();
-
-	boxList.at(indexChildBox).getPlane(1) =
-		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + len *length;
-
-	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + boxList.at(indexChildBox).getPlane(0);
-	len.normalize();
-	boxList.at(indexChildBox).getPlane(0) =
-		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + len *length;
-
-	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + boxList.at(indexChildBox).getPlane(3);
-	len.normalize();
-	boxList.at(indexChildBox).getPlane(3) =
-		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + len *length;
-
-	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + boxList.at(indexChildBox).getPlane(2);
-	len.normalize();
-	boxList.at(indexChildBox).getPlane(2) =
-		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + len *length;
 	update();
 }
 
@@ -1608,6 +1706,7 @@ void GLWidget::shapeDetect(int signForGround ){
 	}
 
 	center /= pc.size();
+	
 
 	Vec3fShape pnormal[3];
 	pnormal[0] = ptr->Internal().getNormal();
@@ -1751,7 +1850,7 @@ void GLWidget::shapeDetect(int signForGround ){
 		minLength[i] /= 1000.0f;
 	}
 	center /= 1000.0f;	
-
+	boxCenter = center;
 	float pmax[3] = { maxLength[0], maxLength[1], maxLength[2] };
 	float pmin[3] = { minLength[0], minLength[1], minLength[2] };
 
@@ -1767,6 +1866,7 @@ void GLWidget::shapeDetect(int signForGround ){
 
 void GLWidget::addConstraint(int index){
 	bEditLength = false;
+	bMoveBox = false;
 	switch (index)
 	{
 		case 0:{
@@ -1794,11 +1894,13 @@ void GLWidget::addConstraint(int index){
 					   boxList.at(indexChildBox).vertex[i] = 
 						   VEC3D2vec3fShape(out_R * vec3fShape2VEC3D(boxList.at(indexChildBox).vertex[i]) + out_t);
 				   }
+				   if (boxList.at(indexChildBox).joint)
+				   boxList.at(indexChildBox).joint->setPivotPointIndex(boxList.at(indexChildBox).pivotPoint[0], boxList.at(indexChildBox).pivotPoint[1]);
 
-				   jointList.at(0)->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
-				   jointList.at(1)->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-				   jointList.at(2)->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
-				   jointList.at(3)->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
+				   //jointList.at(0)->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
+				   //jointList.at(1)->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
+				   //jointList.at(2)->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
+				   //jointList.at(3)->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
 
 				   update();
 				   
@@ -1823,10 +1925,9 @@ void GLWidget::addConstraint(int index){
 					   boxList.at(indexChildBox).vertex[i] =
 						   VEC3D2vec3fShape(out_R * vec3fShape2VEC3D(boxList.at(indexChildBox).vertex[i]) + out_t);
 				   }
-				   jointList.at(0)->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
-				   jointList.at(1)->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-				   jointList.at(2)->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
-				   jointList.at(3)->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
+				   if (boxList.at(indexChildBox).joint)
+				   boxList.at(indexChildBox).joint->setPivotPointIndex(boxList.at(indexChildBox).pivotPoint[0], boxList.at(indexChildBox).pivotPoint[1]);
+
 
 		}
 			break;
@@ -1921,6 +2022,139 @@ void GLWidget::addConstraint(int index){
 				   emit editSliderReset();
 				   bEditLength = true;
 				   
+		}
+			break;
+		case 6:{	//move boxes, using the same signals as the length edit
+				   iEditLength = 1;
+				   emit editSliderReset();
+				   bMoveBox = true;
+
+		}
+			break;
+		case 7:{	//equal cover
+				   QVector4D qVertex[3];
+				   Vec3fShape pointsParent[3];
+				   Vec3fShape pointsChild[3];
+				   Vec3fShape temp;
+				   if (boxList.at(indexParentBox).joint)
+				   {
+					   //boxList.at(indexParentBox).m_transform * QVector4D((boxList.at(indexParentBox)))
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   temp = boxList.at(indexParentBox).getPlane(i);
+						   qVertex[i] = QVector4D(temp[0], temp[1], temp[2], 1.0);
+						   qVertex[i] = boxList.at(indexParentBox).m_transform * qVertex[i];
+						   pointsParent[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
+					   }
+				   }
+
+				   if (boxList.at(indexChildBox).joint)
+				   {
+					   //boxList.at(indexChildBox).m_transform * QVector4D((boxList.at(indexChildBox)))
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   temp = boxList.at(indexChildBox).getPlane(i);
+						   qVertex[i] = QVector4D(temp[0], temp[1], temp[2], 1.0);
+						   qVertex[i] = boxList.at(indexChildBox).m_transform * qVertex[i];
+						   pointsChild[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
+					   }
+				   }
+
+				   Vec3fShape normal;
+				   normal = (pointsParent[2] - pointsParent[1]).cross(pointsParent[0] - pointsParent[1]);
+				   normal.normalize();
+
+				   double dis[2];
+				   for (size_t i = 0; i < 2; i++)
+				   {
+					   dis[i] = (pointsChild[0] - pointsParent[0]).dot(normal);
+				   }
+
+				   if (dis[0] < 0 && dis[1] < 0){
+					   normal = -normal;
+					   for (size_t i = 0; i < 2; i++)
+					   {
+						   dis[i] = (pointsChild[0] - pointsParent[0]).dot(normal);
+					   }
+				   }
+					  
+				   if (dis[0] > dis[1]){
+					   dis[1] = dis[0];
+					   
+				   }
+				   else{
+					   dis[0] = dis[1];
+					  
+				   }
+
+				   int targetPlaneIndex = boxList.at(indexParentBox).selectedPlaneIndex;
+
+				   if (targetPlaneIndex % 2 == 0)
+					   targetPlaneIndex++;
+				   else
+					   targetPlaneIndex--;
+
+				   double length = dis[0] / 2;
+				   Vec3fShape len;
+				   len = boxList.at(indexParentBox).getTargetPlane(targetPlaneIndex, 0) - boxList.at(indexParentBox).getPlane(1);
+				   len.normalize();
+
+				   boxList.at(indexParentBox).getTargetPlane(targetPlaneIndex, 0) =
+					   boxList.at(indexParentBox).getPlane(1) + len *length;
+
+				   boxList.at(indexParentBox).getTargetPlane(targetPlaneIndex, 1) =
+					   boxList.at(indexParentBox).getPlane(0) + len *length;
+
+				   boxList.at(indexParentBox).getTargetPlane(targetPlaneIndex, 2) =
+					   boxList.at(indexParentBox).getPlane(3) + len *length;
+
+				   boxList.at(indexParentBox).getTargetPlane(targetPlaneIndex, 3) =
+					   boxList.at(indexParentBox).getPlane(2) + len *length;
+
+				   targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
+				   if (targetPlaneIndex % 2 == 0)
+					   targetPlaneIndex++;
+				   else
+					   targetPlaneIndex--;
+				   len = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) - boxList.at(indexChildBox).getPlane(1);
+				   len.normalize();
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) =
+					   boxList.at(indexChildBox).getPlane(1) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) =
+					   boxList.at(indexChildBox).getPlane(0) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) =
+					   boxList.at(indexChildBox).getPlane(3) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) =
+					   boxList.at(indexChildBox).getPlane(2) + len *length;
+					
+
+				   
+		}
+			break;
+		case 8:{	//add hinge joint
+
+				   BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(indexParentBox), boxList.at(indexChildBox));
+				   joint1->setPivotPointIndex(boxList.at(indexChildBox).selectedPointIndex[0], boxList.at(indexChildBox).selectedPointIndex[1]);
+				   joint1->setBoxIndex(indexParentBox, indexChildBox);
+				   joint1->setRange(-180, 180);
+				   jointList.push_back(joint1);
+				   emit jointUpdate(jointList);
+		}
+			break;
+		case 9:{
+				   BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(indexParentBox), boxList.at(indexChildBox));
+				   joint3->setPivotPointIndex(boxList.at(indexChildBox).selectedPointIndex[0], boxList.at(indexChildBox).selectedPointIndex[1]);
+				   
+				   joint3->setBoxIndex(indexParentBox, indexChildBox);
+				   joint3->slide(0);
+				   joint3->setRange(-3, 3);
+				   jointList.push_back(joint3);
+				   emit jointUpdate(jointList);
+
 		}
 			break;
 		default:
@@ -2058,7 +2292,7 @@ void GLWidget::setTransMode(int mode){
 	this->setFocus();
 }
 
-void GLWidget::setTrans(float dx, float dy, float dz){
+void GLWidget::setTrans(float dx, float dy, float dz,int mode){
 	if (currentMesh){
 		float d = stepLength / stepDPI;
 		if (iTransMode == 1){
@@ -2083,8 +2317,16 @@ void GLWidget::setTrans(float dx, float dy, float dz){
 	}
 	else{
 		m_camera.setToIdentity();
-		eye += QVector3D(dx, dy, dz);
-		at += QVector3D(dx, dy, dz);
+		if (mode == 0){
+			eye += QVector3D(dx, dy, dz);
+			at += QVector3D(dx, dy, dz);
+		}
+		else
+		{
+			eye += QVector3D(dx, dy, dz);
+			//at += QVector3D(dx, dy, dz);
+		}
+
 		m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
 		//m_xRot = m_yRot = m_zRot = 0;
 	}
@@ -2300,31 +2542,39 @@ void GLWidget::wheelEvent(QWheelEvent * event){
 		eye = (eye - at).normalized() + at;
 	else
 		eye += event->delta() / 200.0 * dv.normalized();
-	m_camera.lookAt(eye, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+	m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
 	update();
-
 }
 
 void GLWidget::keyPressEvent(QKeyEvent * event){
 	
 	switch (event->key()){
 	case 'W':
-		setTrans(0, -0.1, 0); 
+		setTrans(0, -0.1, 0,eyeAtMode); 
 		break;
 	case 'S':
-		setTrans(0, 0.1, 0); 
+		setTrans(0, 0.1, 0, eyeAtMode);
 		break;
 	case 'A':
-		setTrans(0.1, 0, 0);
+		setTrans(0.1, 0, 0, eyeAtMode);
 		break;
 	case 'D':
-		setTrans(-0.1, 0, 0);
+		setTrans(-0.1, 0, 0, eyeAtMode);
 		break;
 	case 'Q':
-		setTrans(0, 0, -0.1);
+		setTrans(0, 0, -0.1, eyeAtMode);
 		break;
 	case 'E':
-		setTrans(0, 0, 0.1);
+		setTrans(0, 0, 0.1, eyeAtMode);
+		break;
+	case Qt::Key_Space:{
+		eyeAtMode = 1 - eyeAtMode;
+	}
+		break;
+	case 'C':{
+		setThisBoxCenter = true;
+		update();
+	}
 		break;
 	}
 }

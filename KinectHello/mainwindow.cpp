@@ -29,12 +29,14 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *coXYAction = new QAction(tr("&XY coordinate"), this);
 	QAction *coYZAction = new QAction(tr("&YZ coordinate"), this);
 	QAction *coXZAction = new QAction(tr("&XZ coordinate"), this);
+	QAction *drawJointAction = new QAction(tr("&Joints rendering switch"), this);
 
 	menuWindow->addAction(openAction);
 	menuWindow->addAction(coNoAction);
 	menuWindow->addAction(coXYAction);
 	menuWindow->addAction(coYZAction);
 	menuWindow->addAction(coXZAction);
+	menuWindow->addAction(drawJointAction);
 
 	toolBar->addAction(widgetAction);
 	toolBar->addAction(brutalModeWidgetAction); 
@@ -89,6 +91,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(coXYAction, SIGNAL(triggered()), glWidget, SLOT(XYClicked()));
 	connect(coYZAction, SIGNAL(triggered()), glWidget, SLOT(YZClicked()));
 	connect(coXZAction, SIGNAL(triggered()), glWidget, SLOT(XZClicked()));
+	connect(drawJointAction, SIGNAL(triggered()), glWidget, SLOT(drawJoint()));
 
 	connect(widgetAction, SIGNAL(triggered()), this, SLOT(openFolder()));
 	connect(shapeWidgetAction, SIGNAL(triggered()), this, SLOT(grabResUpdated()));
@@ -173,12 +176,17 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	constraintBox = new QComboBox(this);
 	constraintBox->setMaximumSize(QSize(240, 30));
 	constraintBox->setMinimumSize(QSize(0, 30));
-	constraintBox->addItem("Plane Edge Alignment");
-	constraintBox->addItem("Edge Edge Alignment");
-	constraintBox->addItem("Equal Length");
-	constraintBox->addItem("Set Length");
-	constraintBox->addItem("Rotatation");
-	constraintBox->addItem("Length Editing");
+
+	constraintBox->addItem("Plane-Edge Alignment");	//0
+	constraintBox->addItem("Edge-Edge Alignment");	//1
+	constraintBox->addItem("Equal-Length");			//2
+	constraintBox->addItem("Length Setting");		//3
+	constraintBox->addItem("Rotatation");			//4
+	constraintBox->addItem("Length Editing");		//5
+	constraintBox->addItem("Box Moving");			//6
+	constraintBox->addItem("Equal Cover");			//7
+	constraintBox->addItem("Add Hinge Joint");		//8
+	constraintBox->addItem("Add Slider Joint");		//9
 
 	constraintLayout->addWidget(constraintBox);
 	controlPanelLayout->addLayout(constraintLayout);
@@ -260,24 +268,23 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	leftSecond->setLayout(leftSecondLayout);
 	leftTab->addTab(leftSecond,tr("Boxes + Joints"));
 
-	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint *>)), this, SLOT(jointUpdate(std::vector<BoxJoint *>)));
-	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>)));
+	
 	connect(jointTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(jointDoubleClick(const QModelIndex)));
 	connect(boxTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(boxDoubleClick(const QModelIndex)));
-
-	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double,double,double)));
 	connect(jointSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(jointSliderValueChanged(int)));
 	connect(editSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(editSliderValueChanged(int)));
 	connect(submitButton, SIGNAL(clicked()), this, SLOT(selectSubmit()));
 	connect(parentBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(parentBoxSelect(int)));
 	connect(childBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(childBoxSelect(int)));
-	//connect(planeSelectBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(planeSelect(int)));
-	connect(this, SIGNAL(planeSelect(int)), glWidget, SLOT(planeSelect(int)));
 	connect(addConsButton, SIGNAL(clicked()), this, SLOT(addConstraint()));
+	connect(this, SIGNAL(planeSelect(int)), glWidget, SLOT(planeSelect(int)));
 	connect(this, SIGNAL(addConstraint(int)), glWidget, SLOT(addConstraint(int)));
 	connect(this, SIGNAL(vertexSelect(int,int)), glWidget, SLOT(vertexSelect(int,int)));
 	connect(glWidget, SIGNAL(boxUpdate(int, int, int)), this, SLOT(boxUpdate(int, int, int)));
 	connect(glWidget, SIGNAL(editSliderReset()), this, SLOT(editSliderReset()));
+	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint *>)), this, SLOT(jointUpdate(std::vector<BoxJoint *>)));
+	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>))); 
+	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double, double, double)));
 
 	for (size_t i = 0; i < 8; i++)
 	{
@@ -326,7 +333,7 @@ void MainWindow::selectSubmit(){
 
 void MainWindow::boxUpdate(int plane, int point1, int point2){
 	if (plane == -1 || point1 == -1 || point2 == -1){
-		QMessageBox::information(0, tr("Not set."), tr("Please set the points and plane selected."));
+		//QMessageBox::information(0, tr("Not set."), tr("Please set the points and plane selected."));
 		for (size_t i = 0; i < 8; i++)
 			vertexCheck[i]->setChecked(false);
 		return;
@@ -405,7 +412,7 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data1");
 
 	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
 	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
@@ -429,7 +436,6 @@ void MainWindow::openFolder(){
 	rgbWidget->setImage(*rgbImage);
 
 	std::string dep_file = (path + QString("/") + dir.dirName() + QString(".depth")).toStdString();
-
 	FILE* fb = fopen(dep_file.c_str(), "rb+");
 	unsigned short *depth_img = NULL;
 	int width, height;
