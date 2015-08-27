@@ -24,14 +24,14 @@ GLWidget::GLWidget(QWidget *parent)
       m_zRot(0),
       m_program(0),
 	  m_count(0),
-	  coord(XZ),
+	  coord(NoCo),
 	  iTransMode(0),
 	  stepDPI(50),
 	  stepLength(50),
 	  nearPlane(0.01),
 	  currentMesh(NULL),
 	  rgbMap(NULL),
-	  drawShapeWithColor(1),
+	  drawShapeWithColor(0),
 	  grabResult(480,640,CV_8UC1),
 	  rawPointCount(0),
 	  triangleBegin(0),
@@ -39,7 +39,8 @@ GLWidget::GLWidget(QWidget *parent)
 	  currentJoint(NULL),
 	  currentBox(-1),
 	  bnormalGroundSet(false),
-	  currentSelectBox(-1)
+	  currentSelectBox(-1),
+	  bEditLength(false)
 {
     //m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -306,7 +307,8 @@ void GLWidget::initializeGL()
     
 	eye = QVector3D(0, 1, 4);
 	up = QVector3D(0, 1, 0);
-	m_camera.lookAt(eye, QVector3D(0, 0, 0), up);
+	at = QVector3D(0, 0, 0);
+	m_camera.lookAt(eye, at, up);
 
     // Light position is fixed.
     m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 15, 0));
@@ -1394,6 +1396,7 @@ void GLWidget::jointDoubleClick(const QModelIndex & qm){
 
 void GLWidget::parentBoxSelect(int index){
 	indexParentBox = index;
+	update();
 }
 
 void GLWidget::planeSelect(int index){
@@ -1410,6 +1413,7 @@ void GLWidget::vertexSelect(int index, int which){
 
 void GLWidget::childBoxSelect(int index){
 	indexChildBox = index;
+	update();
 }
 
 void GLWidget::jointSliderValueChanged(int pValue){
@@ -1440,6 +1444,81 @@ void GLWidget::jointSliderValueChanged(int pValue){
 	update();
 }
 
+void GLWidget::editSliderValueChanged(int pValue){
+	if (!bEditLength)
+		return;
+
+	Vec3fShape point1, point2;
+
+
+	
+	//point1 = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]];
+	//point2 = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[1]];
+	//double length = (point1 - point2).length();
+	int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
+	switch (targetPlaneIndex)
+	{
+	case 0:
+		targetPlaneIndex = 1;
+		break;
+	case 1:
+		targetPlaneIndex = 0;
+		break;
+	case 2:
+		targetPlaneIndex = 3;
+		break;
+	case 3:
+		targetPlaneIndex = 2;
+		break;
+	case 4:
+		targetPlaneIndex = 5;
+		break;
+	case 5:
+		targetPlaneIndex = 4;
+		break;
+	default:
+		break;
+	}
+
+	point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex,0);
+	point2 = boxList.at(indexChildBox).getPlane(1);
+	//double length = (point1 - point2).length();
+	if (iEditLength)
+	{
+		iEditLength--;
+		fixedLength = (point1 - point2).length();
+		return;
+	}
+
+	double length = fixedLength + (pValue) / 500.0;
+	if (length<0)
+	{
+		return;
+	}
+
+	Vec3fShape len = (point2 - point1);
+	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + boxList.at(indexChildBox).getPlane(1);
+	len.normalize();
+
+	boxList.at(indexChildBox).getPlane(1) =
+		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) + len *length;
+
+	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + boxList.at(indexChildBox).getPlane(0);
+	len.normalize();
+	boxList.at(indexChildBox).getPlane(0) =
+		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) + len *length;
+
+	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + boxList.at(indexChildBox).getPlane(3);
+	len.normalize();
+	boxList.at(indexChildBox).getPlane(3) =
+		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) + len *length;
+
+	len = - boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + boxList.at(indexChildBox).getPlane(2);
+	len.normalize();
+	boxList.at(indexChildBox).getPlane(2) =
+		boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + len *length;
+	update();
+}
 
 bool less_second(const std::pair< MiscLib::RefCountPtr< PrimitiveShape >, size_t > & m1, 
 const std::pair< MiscLib::RefCountPtr< PrimitiveShape >, size_t > & m2) {
@@ -1687,6 +1766,7 @@ void GLWidget::shapeDetect(int signForGround ){
 }
 
 void GLWidget::addConstraint(int index){
+	bEditLength = false;
 	switch (index)
 	{
 		case 0:{
@@ -1750,7 +1830,7 @@ void GLWidget::addConstraint(int index){
 
 		}
 			break;
-		case 2:{
+		case 2:{	//equal length
 				   Vec3fShape point1, point2;
 
 				   point1 = boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[0]];
@@ -1803,16 +1883,15 @@ void GLWidget::addConstraint(int index){
 
 		}
 			break;
-		case 3:{
+		case 3:{	//set length
 				   Vec3fShape pointParent;
 				   Vec3fShape pointChild;
 				   pointParent = boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[0]];
 				   pointChild = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]];
 
-				   //vef  normalChild;
 		}
 			break;
-		case 4:{
+		case 4:{	//rotation
 
 				   VEC3D seg_ends_parent[2];
 				   seg_ends_parent[0] = vec3fShape2VEC3D(boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[0]]);
@@ -1837,6 +1916,13 @@ void GLWidget::addConstraint(int index){
 				   
 		}
 			break;
+		case 5:{
+				   iEditLength = 1;
+				   emit editSliderReset();
+				   bEditLength = true;
+				   
+		}
+			break;
 		default:
 			break;
 	}
@@ -1845,6 +1931,7 @@ void GLWidget::addConstraint(int index){
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
+	this->setFocus();
     m_lastPos = event->pos();
 
 	QVector3D right;
@@ -1997,8 +2084,9 @@ void GLWidget::setTrans(float dx, float dy, float dz){
 	else{
 		m_camera.setToIdentity();
 		eye += QVector3D(dx, dy, dz);
-		m_camera.lookAt(eye, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-		m_xRot = m_yRot = m_zRot = 0;
+		at += QVector3D(dx, dy, dz);
+		m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
+		//m_xRot = m_yRot = m_zRot = 0;
 	}
 	update();
 }
@@ -2221,22 +2309,22 @@ void GLWidget::keyPressEvent(QKeyEvent * event){
 	
 	switch (event->key()){
 	case 'W':
-		setTrans(0, 0, -1);
+		setTrans(0, -0.1, 0); 
 		break;
 	case 'S':
-		setTrans(0, 0, 1);
+		setTrans(0, 0.1, 0); 
 		break;
 	case 'A':
-		setTrans(-1, 0, 0);
+		setTrans(0.1, 0, 0);
 		break;
 	case 'D':
-		setTrans(1, 0, 0);
+		setTrans(-0.1, 0, 0);
 		break;
 	case 'Q':
-		setTrans(0, 1, 0);
+		setTrans(0, 0, -0.1);
 		break;
 	case 'E':
-		setTrans(0, -1, 0);
+		setTrans(0, 0, 0.1);
 		break;
 	}
 }

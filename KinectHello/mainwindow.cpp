@@ -144,6 +144,15 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	controlPanelLayout->addWidget(sliderLabel);
 	controlPanelLayout->addWidget(jointSlider);
 
+	QLabel *editLabel = new QLabel("Length Edit", this);
+	editSlider = new QSlider(Qt::Horizontal, this);
+	editSlider->setRange(-499, 499);
+	editSlider->setSingleStep(1);
+	editSlider->setPageStep(1);
+
+	controlPanelLayout->addWidget(editLabel);
+	controlPanelLayout->addWidget(editSlider);
+
 	QHBoxLayout * parentBoxLayout = new QHBoxLayout(this);
 	QLabel *parentLabel = new QLabel("Parent Box Selection", this);
 	parentBoxLayout->addWidget(parentLabel);
@@ -168,7 +177,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	constraintBox->addItem("Edge Edge Alignment");
 	constraintBox->addItem("Equal Length");
 	constraintBox->addItem("Set Length");
-	constraintBox->addItem("Rotate Reset");
+	constraintBox->addItem("Rotatation");
+	constraintBox->addItem("Length Editing");
 
 	constraintLayout->addWidget(constraintBox);
 	controlPanelLayout->addLayout(constraintLayout);
@@ -257,6 +267,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 
 	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double,double,double)));
 	connect(jointSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(jointSliderValueChanged(int)));
+	connect(editSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(editSliderValueChanged(int)));
 	connect(submitButton, SIGNAL(clicked()), this, SLOT(selectSubmit()));
 	connect(parentBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(parentBoxSelect(int)));
 	connect(childBox, SIGNAL(currentIndexChanged(int)), glWidget, SLOT(childBoxSelect(int)));
@@ -266,6 +277,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(this, SIGNAL(addConstraint(int)), glWidget, SLOT(addConstraint(int)));
 	connect(this, SIGNAL(vertexSelect(int,int)), glWidget, SLOT(vertexSelect(int,int)));
 	connect(glWidget, SIGNAL(boxUpdate(int, int, int)), this, SLOT(boxUpdate(int, int, int)));
+	connect(glWidget, SIGNAL(editSliderReset()), this, SLOT(editSliderReset()));
 
 	for (size_t i = 0; i < 8; i++)
 	{
@@ -276,6 +288,13 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 
 void MainWindow::addConstraint(){
 	emit addConstraint(constraintBox->currentIndex());
+}
+
+void MainWindow::editSliderReset(){
+	editSlider->setRange(-499, 499);
+	editSlider->setSingleStep(1);
+	editSlider->setPageStep(1);
+	editSlider->setValue(0);
 }
 
 void MainWindow::selectSubmit(){

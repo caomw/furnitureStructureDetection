@@ -151,6 +151,9 @@ public:
 	GLMmodel * ballModel;
 	void drawPlane(Vec3fShape v1, Vec3fShape v2, Vec3fShape v3, Vec3fShape v4);
 	void drawModel(GLMmodel *);
+	bool bEditLength;
+	int iEditLength;
+	double fixedLength;
 
 public slots:
     void setXRotation(int angle);
@@ -179,6 +182,7 @@ public slots:
 	void jointDoubleClick(const QModelIndex &qm);
 	void boxDoubleClick(const QModelIndex &qm);
 	void jointSliderValueChanged(int);
+	void editSliderValueChanged(int);
 	void deleteCurrentBox();
 	void parentBoxSelect(int);
 	void childBoxSelect(int);
@@ -202,6 +206,7 @@ signals:
 	void boxUpdate(std::vector<Box> pBoxList);
 	void jointSliderChanged(double, double, double);
 	void boxUpdate(int plane, int point1, int point2);
+	void editSliderReset();
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;

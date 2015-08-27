@@ -50,6 +50,7 @@ public:
 	QTreeView * jointTree;
 	QTreeView *boxTree;
 	QSlider * jointSlider;
+	QSlider * editSlider;
 	QComboBox * parentBox;
 	QComboBox * childBox;
 	QComboBox * planeSelectBox;
@@ -68,6 +69,7 @@ void jointUpdate(std::vector<BoxJoint *> pJointList);
 	void jointSliderUpdate(double, double, double);
 	void boxUpdate(int,int,int);
 	void addConstraint();
+	void editSliderReset();
 
 private slots:
 	void openFolder();
