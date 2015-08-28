@@ -137,7 +137,7 @@ public:
 	int triangleEnd;
 	void shapeDetect(int signForGround = 0);
 	BoxJoint * currentJoint;
-	void DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1);
+	void DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1, QMatrix4x4 box);
 	void DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1);
 	void DrawBall(float x0, float y0, float z0, float x1, QMatrix4x4 boxTransform);
 	void DrawTorus(float in, float out);
@@ -157,6 +157,7 @@ public:
 	double fixedLength;
 	Vec3fShape fixedPos[8];
 	bool bDrawJoint;
+	bool bDrawSelected;
 	int eyeAtMode;
 	Vec3fShape boxCenter;
 	bool setThisBoxCenter;
@@ -200,6 +201,7 @@ public slots:
 	void save();
 	void read();
 	void drawJoint();
+	void drawSelected();
 
 signals:
     void xRotationChanged(int angle);

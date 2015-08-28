@@ -8,8 +8,9 @@
 #include <math.h>
 
 #define T(x) (model->triangles[(x)])
-std::string filePath = std::string("Resources/data1/");
-std::string fileHead = std::string("data1");
+std::string filePath = std::string("Resources/data0/");
+std::string fileHead = std::string("data0");
+
 VEC3D vec3fShape2VEC3D(Vec3fShape v){
 	return VEC3D(v[0], v[1], v[2]);
 }
@@ -44,7 +45,8 @@ GLWidget::GLWidget(QWidget *parent)
 	  bEditLength(false),
 	  bDrawJoint(true),
 	  eyeAtMode(0),
-	  boxCenter(0,0,0)
+	  boxCenter(0,0,0),
+	  bDrawSelected(true)
 {
     //m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -52,16 +54,18 @@ GLWidget::GLWidget(QWidget *parent)
     m_transparent = QCoreApplication::arguments().contains(QStringLiteral("--transparent"));
     if (m_transparent)
         setAttribute(Qt::WA_TranslucentBackground);
+
 	m_data.reserve(640 * 480 *24);
+
 	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 0 / 255.0f,1.0));
 	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
 	colorList.push_back(QVector4D(0 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
 	colorList.push_back(QVector4D(255 / 255.0f, 0 / 255.0f, 255 / 255.0f,1.0));
-	colorList.push_back(QVector4D(0.0, 0.9f, 0.0f,1.0));
-	colorList.push_back(QVector4D(0.0, 0.0f, 0.9f,1.0));
-	colorList.push_back(QVector4D(0.729, 0.004f, 1.0f,1.0));
-	colorList.push_back(QVector4D(0.639, 0.376f, 0.594f,1.0));
-	colorList.push_back(QVector4D(1.0, 0.310f, 0.322f,1.0));
+	colorList.push_back(QVector4D(0.0, 0.9f, 0.0f, 1.0));
+	colorList.push_back(QVector4D(0.0, 0.0f, 0.9f, 1.0));
+	colorList.push_back(QVector4D(0.729, 0.004f, 1.0f, 1.0));
+	colorList.push_back(QVector4D(0.639, 0.376f, 0.594f, 1.0));
+	colorList.push_back(QVector4D(1.0, 0.310f, 0.322f, 1.0));
 	setThisBoxCenter = false;
 	sendCenter.setToIdentity();
 }
@@ -369,7 +373,6 @@ void GLWidget::save(){
 	//}
 	fwrite(&sendCenter, sizeof(QMatrix4x4), 1, stream);
 	fclose(stream);
-	return;
 	int num = m_data.size();
 	//***********save rendering buffer data
 	
@@ -574,7 +577,7 @@ void GLWidget::setupVertexAttribs()
 void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_world, int m_fixedColor){
 	float cc[4] = { 0, 0, 0, 0 };
 
-	QVector4D normal(0.5f, 0.5f, 0.5f, 0.0f);
+	QVector4D normal(0.5f, 0.5f, 0.5f, 1.0f);
 	m_program->setUniformValue(m_fixedColor, normal);
 	
 	switch (coord){
@@ -596,14 +599,14 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		glEnd();
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 1.0f, 0.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 1.0f, 0.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(0, -Mc, 0); glVertex3f(0, Mc, 0);
 		glEnd();
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(1.0f, 0.0f, 0.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(1.0f, 0.0f, 0.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(-Mc, 0, 0); glVertex3f(Mc, 0, 0);
@@ -613,7 +616,7 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 	}
 	case YZ:{
 		
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
+		//glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
 		glPushMatrix();
 		glBegin(GL_LINES);
 		for (float y = -Mc; y <= Mc + 0.05; y += 0.1){
@@ -630,14 +633,14 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		glColor3d(1, 1, 1);
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 1.0f, 0.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 1.0f, 0.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(0, -Mc, 0); glVertex3f(0, Mc, 0);
 		glEnd();
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 0.0f, 1.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 0.0f, 1.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(0, 0, -Mc); glVertex3f(0, 0, Mc);
@@ -646,7 +649,7 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		break;
 	}
 	case XZ:{
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
+		//glMaterialfv(GL_FRONT, GL_DIFFUSE, cc);
 		glPushMatrix();
 		glBegin(GL_LINES);
 		for (float z = -Mc; z <= Mc + 0.05; z += 0.1){
@@ -663,14 +666,14 @@ void drawcoordinate(QOpenGLShaderProgram *m_program, int coord, QMatrix4x4 m_wor
 		glColor3d(1, 1, 1);
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 0.0f, 1.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(0.0f, 0.0f, 1.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(0, 0, -Mc); glVertex3f(0, 0, Mc);
 		glEnd();
 		glPopMatrix();
 
-		m_program->setUniformValue(m_fixedColor, QVector4D(1.0f, 0.0f, 0.0f, 0.0f));
+		m_program->setUniformValue(m_fixedColor, QVector4D(1.0f, 0.0f, 0.0f, 1.0f));
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(-Mc, 0, 0); glVertex3f(Mc, 0, 0);
@@ -687,6 +690,7 @@ void GLWidget::drawBoxLine(){
 	{
 		m_program->setUniformValue(m_fixedColor, QVector4D(colorList.at(i % colorList.size())));
 		m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
+		glLineWidth(3);
 		glPushMatrix();
 		glBegin(GL_LINES);
 		glVertex3f(boxList.at(i).vertex[0][0], boxList.at(i).vertex[0][1], boxList.at(i).vertex[0][2]);
@@ -774,7 +778,7 @@ void GLWidget::drawPlane(Vec3fShape v1, Vec3fShape v2, Vec3fShape v3, Vec3fShape
 
 }
 
-void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1){
+void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1, QMatrix4x4 box){
 
 	Vec3fShape dir(x1-x0, y1-y0, z1-z0);
 	Vec3fShape axis = Vec3fShape(0, 0, 1).cross(dir);
@@ -793,7 +797,7 @@ void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float
 	pos.setToIdentity();
 	pos.translate(x0,y0,z0);
 		
-	m_program->setUniformValue(m_mvMatrixLoc, m_camera *m_world * pos * rotation * trans);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera *m_world *box* pos * rotation * trans);
 	drawModel(arrowStraightModel);
 	
 }
@@ -813,9 +817,23 @@ void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float
 	rotation.scale(0.15);
 	rotation.rotate(alpha *180.0f / 3.1415926f, axis[0], axis[1], axis[2]);
 
+	Vec3fShape temp1, temp2;
+	if (z0 < z1)
+	{
+		temp1 = Vec3fShape(x0,y0,z0);
+		temp2 = Vec3fShape(x1, y1, z1);
+	}
+	else{
+		temp2 = Vec3fShape(x0, y0, z0);
+		temp1 = Vec3fShape(x1, y1, z1);
+	}
+	Vec3fShape offset = temp1 - temp2;
+	temp1 = offset * 1.28;
+	temp2 = temp2 + temp1;
 	QMatrix4x4 pos;
 	pos.setToIdentity();
-	pos.translate((x0 + x1) / 2.0f, (y0 + y1) / 2.0f, (z0 + z1) / 2.0f);
+	//pos.translate((x0 + x1) / 2.0f, (y0 + y1) / 2.0f, (z0 + z1) / 2.0f);
+	pos.translate(temp2[0], temp2[1], temp2[2]);
 
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera *m_world * pos * rotation * r2);
 	drawModel(arrowModel);
@@ -881,15 +899,25 @@ void GLWidget::DrawJoints(){
 
 			for (size_t k = 0; k < 3; k++)
 			{
-				if ((abs(line[k].dot(temp1 - temp0)) - 1) < 0.001)
+				line[k].normalize();
+				Vec3fShape pc = temp1 - temp0;
+				pc.normalize();
+				if (abs(abs(line[k].dot(pc)) - 1) < 0.001 )
 				{
-					temp0 = centerPlane[k];
-					temp1 = centerPlane[k + 1];
+					temp0 = centerPlane[2 * k];
+					temp1 = centerPlane[2 * k + 1];
 				}
 			}
-			DrawArrow(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2]);
+			if (temp0[2] < temp1[2])
+			{
+				DrawArrow(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], jointList.at(i)->getChild().m_transform);
+			}
+			else
+			{
+				DrawArrow(temp1[0], temp1[1], temp1[2], temp0[0], temp0[1], temp0[2], jointList.at(i)->getChild().m_transform);
+			}
+			
 		}
-
 	}
 }
 
@@ -897,13 +925,20 @@ void GLWidget::drawJoint(){
 	bDrawJoint = !bDrawJoint;
 }
 
+void GLWidget::drawSelected(){
+	bDrawSelected = !bDrawSelected;
+}
+
+QVector4D toTranparent(QVector4D clr){
+	return QVector4D(clr.x(), clr.y(), clr.z(), 0.37);
+}
 
 void GLWidget::paintGL()
 {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
+
 
 	texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
@@ -915,7 +950,6 @@ void GLWidget::paintGL()
 		texture->setData(*shapeColor);
 
 	texture->bind();
-
     m_world.setToIdentity();
 
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
@@ -924,14 +958,16 @@ void GLWidget::paintGL()
     
     QMatrix3x3 normalMatrix = m_world.normalMatrix();
     m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
-
 	m_program->setUniformValue(m_fixedPipeline, true);
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
 
+	//*************************** draw the coordinate*********************************************************
+	glEnable(GL_BLEND);
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
+	glLineWidth(1);
 	drawcoordinate(m_program, coord, m_world, m_fixedColor);
-	
-	
-
+	glDisable(GL_BLEND);
 	if (setThisBoxCenter)
 	{
 		sendCenter.setToIdentity();
@@ -942,32 +978,33 @@ void GLWidget::paintGL()
 	m_world.rotate(m_xRot / 16.0f, 1, 0, 0);
 	m_world.rotate(m_yRot / 16.0f, 0, 1, 0);
 	m_world.rotate(m_zRot / 16.0f, 0, 0, 1);
-	
 	m_world.rotate(180, 0, 0, 1);
 	m_world.rotate(180, 0, 1, 0);
 	m_world = m_world * sendCenter;
 
+	glEnable(GL_BLEND);
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	//*************************** draw the edges of the box *************************************************
 	if (!drawShapeWithColor)
 		drawBoxLine();
+	glDisable(GL_BLEND);
+
+	//*************************** draw the joints ***********************************************************
 	if (bDrawJoint)
 		DrawJoints();
 
-
-	m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 15, 0));
-	m_program->setUniformValue(m_viewPos, eye);
+	//*************************** draw the selected plane and points ****************************************
 	m_program->setUniformValue(m_hasTex, true);
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
 	m_program->setUniformValue(m_fixedPipeline, false);
 	m_program->setUniformValue(m_assignedMode, true);
-	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
-	m_program->setUniformValue(matAmbientLoc, QVector3D(0.5, 0.5, 0.5));
-	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
-	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
-	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
+	if (bDrawSelected)
 	for (size_t i = 0; i < boxList.size(); i++){
 		if (i != indexParentBox && i != indexChildBox)
 			continue;
-
 		for (size_t k = 0; k < 2; k++){
 			if (boxList.at(i).selectedPointIndex[k] != -1){
 				Vec3fShape p = boxList.at(i).vertex[boxList.at(i).selectedPointIndex[k]];
@@ -977,18 +1014,48 @@ void GLWidget::paintGL()
 		
 		if (boxList.at(i).selectedPlaneIndex != -1)
 		{
-			m_program->setUniformValue(m_assignedColor, QVector4D(colorList.at(i % colorList.size())));
+			m_program->setUniformValue(m_assignedColor, QVector4D(colorList.at(i+4 % colorList.size())));
 			m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
 			drawPlane(boxList.at(i).getPlane(0), boxList.at(i).getPlane(1), boxList.at(i).getPlane(2), boxList.at(i).getPlane(3));
 		}	
 	}
 
-	m_program->setUniformValue(m_assignedMode, false);
-	
-	for (size_t i = 0; i < boxList.size(); i++)
-		for (size_t j = 0; j < boxList.at(i).shapeRange->size(); j++)
-			drawShape(boxList.at(i).shapeRange->at(j).first, boxList.at(i).shapeRange->at(j).second, boxList.at(i).m_transform);
+	//*************************** draw the  points cloud ****************************************************
+	//m_program->setUniformValue(m_assignedMode, false);
+	if (!drawShapeWithColor){
+		m_program->setUniformValue(m_assignedMode, false);
+	}
+	else
+	{
+		m_program->setUniformValue(m_fixedPipeline, false);
+		m_program->setUniformValue(m_assignedMode, true);
+	}
 
+	for (size_t i = 0; i < boxList.size(); i++)
+	for (size_t j = 0; j < boxList.at(i).shapeRange->size(); j++){
+		m_program->setUniformValue(m_assignedColor, colorList.at((j - 1 + i) % colorList.size()));
+		drawShape(boxList.at(i).shapeRange->at(j).first, boxList.at(i).shapeRange->at(j).second, boxList.at(i).m_transform);
+	}
+			
+
+	//*************************** draw the transparent planes of each box ***********************************
+	glEnable(GL_BLEND);
+	m_program->setUniformValue(m_hasTex, true);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
+	m_program->setUniformValue(m_fixedPipeline, false);
+	m_program->setUniformValue(m_assignedMode, true);
+	glDepthMask(GL_FALSE);
+	if (!drawShapeWithColor)
+	for (size_t i = 0; i < boxList.size(); i++){
+		m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())));
+		m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
+		for (size_t j = 0; j < 6; j++)
+		{
+			drawPlane(boxList.at(i).getTargetPlane(j, 0), boxList.at(i).getTargetPlane(j, 1), boxList.at(i).getTargetPlane(j, 2), boxList.at(i).getTargetPlane(j, 3));
+		}
+	}
+	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
 	m_program->release();
 }
 
@@ -1485,7 +1552,7 @@ void GLWidget::jointSliderValueChanged(int pValue){
 		return;
 	}
 
-	double pos = pValue / 100.0f * (currentJoint->getRangeMax() - currentJoint->getRangeMin()) + currentJoint->getRangeMin();
+	double pos = pValue / 1000.0f * (currentJoint->getRangeMax() - currentJoint->getRangeMin()) + currentJoint->getRangeMin();
 	switch (currentJoint->getType())
 	{
 		case BoxJoint::HINGE:{
@@ -1897,11 +1964,6 @@ void GLWidget::addConstraint(int index){
 				   if (boxList.at(indexChildBox).joint)
 				   boxList.at(indexChildBox).joint->setPivotPointIndex(boxList.at(indexChildBox).pivotPoint[0], boxList.at(indexChildBox).pivotPoint[1]);
 
-				   //jointList.at(0)->setPivotPoint(boxList.at(3).vertex[3], boxList.at(3).vertex[7]);
-				   //jointList.at(1)->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-				   //jointList.at(2)->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
-				   //jointList.at(3)->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
-
 				   update();
 				   
 		}
@@ -1985,10 +2047,109 @@ void GLWidget::addConstraint(int index){
 		}
 			break;
 		case 3:{	//set length
-				   Vec3fShape pointParent;
-				   Vec3fShape pointChild;
-				   pointParent = boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[0]];
-				   pointChild = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]];
+				   //Vec3fShape pointParent;
+				   //Vec3fShape pointChild;
+				   //pointParent = boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[0]];
+				   //pointChild = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]];
+
+				   QVector4D qVertex[3];
+				   Vec3fShape pointsParent[3];
+				   Vec3fShape pointsChild[3];
+				   Vec3fShape temp;
+				   if (boxList.at(indexParentBox).joint)
+				   {
+					   //boxList.at(indexParentBox).m_transform * QVector4D((boxList.at(indexParentBox)))
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   temp = boxList.at(indexParentBox).getPlane(i);
+						   qVertex[i] = QVector4D(temp[0], temp[1], temp[2], 1.0);
+						   qVertex[i] = boxList.at(indexParentBox).m_transform * qVertex[i];
+						   pointsParent[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
+					   }
+				   }
+				   else
+				   {
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   pointsParent[i] = boxList.at(indexParentBox).getPlane(i);
+					   }
+				   }
+
+				   if (boxList.at(indexChildBox).joint)
+				   {
+					   //boxList.at(indexChildBox).m_transform * QVector4D((boxList.at(indexChildBox)))
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   temp = boxList.at(indexChildBox).getPlane(i);
+						   qVertex[i] = QVector4D(temp[0], temp[1], temp[2], 1.0);
+						   qVertex[i] = boxList.at(indexChildBox).m_transform * qVertex[i];
+						   pointsChild[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
+					   }
+				   }
+				   else
+				   {
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   pointsChild[i] = boxList.at(indexChildBox).getPlane(i);
+					   }
+				   }
+
+				   Vec3fShape normal;
+				   normal = (pointsParent[2] - pointsParent[1]).cross(pointsParent[0] - pointsParent[1]);
+				   normal.normalize();
+
+				   double dis[2];
+				   for (size_t i = 0; i < 2; i++)
+				   {
+					   dis[i] = (pointsChild[0] - pointsParent[0]).dot(normal);
+				   }
+
+				   if (dis[0] < 0 && dis[1] < 0){
+					   normal = -normal;
+					   for (size_t i = 0; i < 2; i++)
+					   {
+						   dis[i] = (pointsChild[0] - pointsParent[0]).dot(normal);
+					   }
+				   }
+
+				   if (dis[0] > dis[1]){
+					   dis[1] = dis[0];
+
+				   }
+				   else{
+					   dis[0] = dis[1];
+
+				   }
+
+				   int targetPlaneIndex = boxList.at(indexParentBox).selectedPlaneIndex;
+
+				   if (targetPlaneIndex % 2 == 0)
+					   targetPlaneIndex++;
+				   else
+					   targetPlaneIndex--;
+
+				   double length = dis[0];
+				   Vec3fShape len;
+				   
+				   targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
+				   if (targetPlaneIndex % 2 == 0)
+					   targetPlaneIndex++;
+				   else
+					   targetPlaneIndex--;
+				   len = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) - boxList.at(indexChildBox).getPlane(1);
+				   len.normalize();
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) =
+					   boxList.at(indexChildBox).getPlane(1) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 1) =
+					   boxList.at(indexChildBox).getPlane(0) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 2) =
+					   boxList.at(indexChildBox).getPlane(3) + len *length;
+
+				   boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) =
+					   boxList.at(indexChildBox).getPlane(2) + len *length;
 
 		}
 			break;
@@ -2047,6 +2208,13 @@ void GLWidget::addConstraint(int index){
 						   pointsParent[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
 					   }
 				   }
+				   else
+				   {
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   pointsParent[i] = boxList.at(indexParentBox).getPlane(i);
+					   }
+				   }
 
 				   if (boxList.at(indexChildBox).joint)
 				   {
@@ -2057,6 +2225,13 @@ void GLWidget::addConstraint(int index){
 						   qVertex[i] = QVector4D(temp[0], temp[1], temp[2], 1.0);
 						   qVertex[i] = boxList.at(indexChildBox).m_transform * qVertex[i];
 						   pointsChild[i] = Vec3fShape(qVertex[i].x(), qVertex[i].y(), qVertex[i].z());
+					   }
+				   }
+				   else
+				   {
+					   for (size_t i = 0; i < 3; i++)
+					   {
+						   pointsChild[i] = boxList.at(indexChildBox).getPlane(i);
 					   }
 				   }
 
@@ -2537,11 +2712,11 @@ void GLWidget::wheelEvent(QWheelEvent * event){
 
 	m_camera.setToIdentity();
 	QVector3D dv = at - eye;
-	int x = event->delta();
-	if (event->delta() > 0 && event->delta() / 100.0 > (eye - at).length())
-		eye = (eye - at).normalized() + at;
+	//int x = event->delta();
+	if (event->delta() > 0 && event->delta() / 400.0 > (eye - at).length())
+		eye = eye;
 	else
-		eye += event->delta() / 200.0 * dv.normalized();
+		eye += event->delta() / 400.0 * dv.normalized();
 	m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
 	update();
 }
@@ -2576,6 +2751,24 @@ void GLWidget::keyPressEvent(QKeyEvent * event){
 		update();
 	}
 		break;
+	case 'Z':{
+		for (size_t i = 0; i < jointList.size(); i++)
+		{
+			switch (jointList.at(i)->getType()){
+			case BoxJoint::HINGE:{
+				jointList.at(i)->rotate(0);
+			}
+				break;
+			case BoxJoint::SLIDER:{
+				jointList.at(i)->slide(0);
+			}
+				break;
+			}
+		}
+		update();
+	}
+		break;
+
 	}
 }
 

@@ -30,6 +30,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *coYZAction = new QAction(tr("&YZ coordinate"), this);
 	QAction *coXZAction = new QAction(tr("&XZ coordinate"), this);
 	QAction *drawJointAction = new QAction(tr("&Joints rendering switch"), this);
+	QAction *drawSelectedAction = new QAction(tr("&Selected item switch"), this);
 
 	menuWindow->addAction(openAction);
 	menuWindow->addAction(coNoAction);
@@ -37,6 +38,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	menuWindow->addAction(coYZAction);
 	menuWindow->addAction(coXZAction);
 	menuWindow->addAction(drawJointAction);
+	menuWindow->addAction(drawSelectedAction);
 
 	toolBar->addAction(widgetAction);
 	toolBar->addAction(brutalModeWidgetAction); 
@@ -92,6 +94,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(coYZAction, SIGNAL(triggered()), glWidget, SLOT(YZClicked()));
 	connect(coXZAction, SIGNAL(triggered()), glWidget, SLOT(XZClicked()));
 	connect(drawJointAction, SIGNAL(triggered()), glWidget, SLOT(drawJoint()));
+	connect(drawSelectedAction, SIGNAL(triggered()), glWidget, SLOT(drawSelected()));
 
 	connect(widgetAction, SIGNAL(triggered()), this, SLOT(openFolder()));
 	connect(shapeWidgetAction, SIGNAL(triggered()), this, SLOT(grabResUpdated()));
@@ -139,7 +142,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	//childBox->setFont(ft);
 
 	jointSlider = new QSlider(Qt::Horizontal, this);
-	jointSlider->setRange(1, 100);
+	jointSlider->setRange(1, 1000);
 	jointSlider->setSingleStep(1);
 	jointSlider->setPageStep(1);
 
@@ -357,9 +360,9 @@ void MainWindow::jointDoubleClick(const QModelIndex & qm){
 }
 
 void MainWindow::jointSliderUpdate(double value, double min, double max){
-	int pos = (value - min) / (max - min) * 100 +1;
+	int pos = (value - min) / (max - min) * 1000 +1;
 	jointSlider->setValue(pos);
-	jointSlider->setRange(0, 99);
+	jointSlider->setRange(0, 999);
 	jointSlider->setSingleStep(1);
 	jointSlider->setPageStep(1);
 }
@@ -412,7 +415,7 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data1");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
 
 	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
 	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
