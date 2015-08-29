@@ -56,7 +56,14 @@ public:
 		pivotPoint[1] = -1;
 
 	};
-
+	Box(int t){
+		selectedPlaneIndex = -1;
+		selectedPointIndex[0] = -1;
+		selectedPointIndex[1] = -1;
+		shapeRange = new std::vector<std::pair<int, int>>;
+		pivotPoint[0] = -1;
+		pivotPoint[1] = -1;
+	};
 	Vec3fShape& getPlane(int index){
 		if (index < 0 || index > 3 )
 		{

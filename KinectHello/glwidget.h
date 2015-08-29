@@ -162,6 +162,15 @@ public:
 	Vec3fShape boxCenter;
 	bool setThisBoxCenter;
 	QMatrix4x4 sendCenter;
+	int inxDelBox;
+	int inxDelJoint;
+
+	int rawPCBegin;
+	int rawPCEnd;
+	bool bRawPC;
+	bool bRotateBox;
+	Vec3fShape ctrlRotateAxis;
+	Vec3fShape ctrlRotateCenter;
 	
 
 public slots:
@@ -202,6 +211,8 @@ public slots:
 	void read();
 	void drawJoint();
 	void drawSelected();
+	void delJoint();
+	void delBox();
 
 signals:
     void xRotationChanged(int angle);

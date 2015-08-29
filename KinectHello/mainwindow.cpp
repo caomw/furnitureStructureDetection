@@ -184,12 +184,13 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	constraintBox->addItem("Edge-Edge Alignment");	//1
 	constraintBox->addItem("Equal-Length");			//2
 	constraintBox->addItem("Length Setting");		//3
-	constraintBox->addItem("Rotatation");			//4
+	constraintBox->addItem("Rotation Alignment");	//4
 	constraintBox->addItem("Length Editing");		//5
 	constraintBox->addItem("Box Moving");			//6
 	constraintBox->addItem("Equal Cover");			//7
 	constraintBox->addItem("Add Hinge Joint");		//8
 	constraintBox->addItem("Add Slider Joint");		//9
+	constraintBox->addItem("Rotate");				//10
 
 	constraintLayout->addWidget(constraintBox);
 	controlPanelLayout->addLayout(constraintLayout);
@@ -271,9 +272,12 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	leftSecond->setLayout(leftSecondLayout);
 	leftTab->addTab(leftSecond,tr("Boxes + Joints"));
 
-	
+	connect(jointTree, SIGNAL(clicked(const QModelIndex)), glWidget, SLOT(jointDoubleClick(const QModelIndex)));
 	connect(jointTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(jointDoubleClick(const QModelIndex)));
+	connect(jointTree, SIGNAL(customContextMenuRequested(const QPoint)), this, SLOT(jointTreeRight(const QPoint)));
 	connect(boxTree, SIGNAL(doubleClicked(const QModelIndex)), glWidget, SLOT(boxDoubleClick(const QModelIndex)));
+	connect(boxTree, SIGNAL(clicked(const QModelIndex)), glWidget, SLOT(boxDoubleClick(const QModelIndex)));
+	connect(boxTree, SIGNAL(customContextMenuRequested(const QPoint)), this, SLOT(boxTreeRight(const QPoint)));
 	connect(jointSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(jointSliderValueChanged(int)));
 	connect(editSlider, SIGNAL(valueChanged(int)), glWidget, SLOT(editSliderValueChanged(int)));
 	connect(submitButton, SIGNAL(clicked()), this, SLOT(selectSubmit()));
@@ -305,6 +309,26 @@ void MainWindow::editSliderReset(){
 	editSlider->setSingleStep(1);
 	editSlider->setPageStep(1);
 	editSlider->setValue(0);
+}
+
+void MainWindow::boxTreeRight(const QPoint){
+	QMenu *qMenu = new QMenu(this);
+	QModelIndex index = boxTree->currentIndex();
+	glWidget->inxDelBox = index.row();
+	QAction* deleteBoxAction = new QAction("&Delete", this);
+	connect(deleteBoxAction, SIGNAL(triggered()), glWidget, SLOT(delBox()));
+	qMenu->addAction(deleteBoxAction);
+	qMenu->exec(QCursor::pos());
+}
+
+void MainWindow::jointTreeRight(const QPoint){
+	QMenu *qMenu = new QMenu(this);
+	QModelIndex index = jointTree->currentIndex();
+	glWidget->inxDelJoint = index.row();
+	QAction* deleteJointAction = new QAction("&Delete", this);
+	connect(deleteJointAction, SIGNAL(triggered()), glWidget, SLOT(delJoint()));
+	qMenu->addAction(deleteJointAction);
+	qMenu->exec(QCursor::pos());
 }
 
 void MainWindow::selectSubmit(){
@@ -351,7 +375,6 @@ void MainWindow::boxUpdate(int plane, int point1, int point2){
 
 void MainWindow::checkCheck(){
 
-	
 }
 
 void MainWindow::jointDoubleClick(const QModelIndex & qm){
@@ -392,7 +415,6 @@ void MainWindow::boxUpdate(std::vector<Box> pBoxList){
 		parentBox->addItem(QString("box") + QString::number(i));
 		childBox->addItem(QString("box") + QString::number(i));
 	}
-
 }
 
 void MainWindow::grabResUpdated(/*cv::Mat**/){
@@ -415,7 +437,7 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data2");
 
 	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
 	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
@@ -476,13 +498,9 @@ void MainWindow::openFolder(){
 
 			if (QVector3D(camX / 1000.0f, camY / 1000.0f, depth_img[y * width + x] / 1000.0f).length() < 0.000000001)
 				continue;
-			
-			//glWidget->add(QVector3D(camX / 1000.0f, camY / 1000.0f, depth_img[y * width + x] / 1000.0f), QVector3D(0, -1, -1));
-			//glWidget->addTex(QVector2D((float)(x - 6) / (float)width, (float)y / (float)height));
+
 		}
 	}
-
-	//glWidget->rawPointCount = glWidget->m_count / 8;
 
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
@@ -500,6 +518,87 @@ void MainWindow::openFolder(){
 	depthWidget->setImage(*depthImage);
 	rgbWidget->setDepth(*depthImage);
 	glWidget->update();
+	//return;
+	//******************read raw data of box and pts
+
+	FILE *stream;
+
+	if ((stream = fopen("Resources/3_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	int bn;
+	fread(&bn, sizeof(int), 1, stream);
+	//double box[15];
+	double center[3];
+	double scale[3];
+	double xd[3];
+	double yd[3];
+	double zd[3];
+
+	//Vec3fShape pcenter(0.0f, 0.0f, 0.0f);
+	//Vec3fShape pnormal[3];
+	//float pmax[3] = { 0.0f, 0.0f, 0.0f};
+	//float pmin[3] = { 0.0f, 0.0f, 0.0f};
+
+	for (size_t i = 0; i < bn; i++)
+	{
+		fread(&center, 3 * sizeof(double), 1, stream);
+		fread(&scale, 3 * sizeof(double), 1, stream);
+		fread(&xd, 3 * sizeof(double), 1, stream);
+		fread(&yd, 3 * sizeof(double), 1, stream);
+		fread(&zd, 3 * sizeof(double), 1, stream);
+		Box temp(0);
+		Vec3fShape pc(center[0], center[1], center[2]);
+		Vec3fShape xr(xd[0], xd[1], xd[2]);
+		Vec3fShape yr(yd[0], yd[1], yd[2]);
+		Vec3fShape zr(zd[0], zd[1], zd[2]);
+
+		temp.vertex[0] = 1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[1] = 1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[2] = 1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[3] = 1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[4] = -1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[5] = -1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[6] = -1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[7] = -1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		
+		temp.m_transform.setToIdentity();
+		glWidget->boxList.push_back(temp);
+	}
+
+	fclose(stream);
+
+
+	if ((stream = fopen("Resources/3.pts", "rb")) == NULL)
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	double non;
+	for (size_t i = 0; i < 3; i++)
+		fread(&non, sizeof(double), 1, stream);
+
+	int vn, nn, cn;
+	fread(&vn, sizeof(int), 1, stream);
+	double pos[3];
+	
+	glWidget->rawPCBegin = glWidget->m_count / 8;
+	glWidget->m_data.resize(vn * 3 * 8);
+	for (size_t i = 0; i < vn; i++)
+	{
+		fread(pos, 3 * sizeof(double), 1, stream);
+		glWidget->add(
+			QVector3D(pos[0], pos[1], pos[2]),
+			QVector3D(1,1,1));
+		glWidget->addTex(QVector2D(0.5,0.5));
+	}
+	glWidget->rawPCEnd = glWidget->m_count / 8;
+	glWidget->bRawPC = true;
+
+	update();
+	glWidget->boxUpdate(glWidget->boxList);
 
 }
 

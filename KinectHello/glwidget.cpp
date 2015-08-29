@@ -8,8 +8,8 @@
 #include <math.h>
 
 #define T(x) (model->triangles[(x)])
-std::string filePath = std::string("Resources/data0/");
-std::string fileHead = std::string("data0");
+std::string filePath = std::string("Resources/data3/");
+std::string fileHead = std::string("data2");
 
 VEC3D vec3fShape2VEC3D(Vec3fShape v){
 	return VEC3D(v[0], v[1], v[2]);
@@ -268,8 +268,8 @@ void GLWidget::initializeGL()
 
     initializeOpenGLFunctions();
 	//glClearColor(0.285, 0.575, 0.285, m_transparent ? 0 : 1);
-	glClearColor(0.3, 0.3, 0.3, m_transparent ? 0 : 1);
-
+	glClearColor(199 / 255.0f, 237 / 255.0f, 204/255.0f, m_transparent ? 0 : 1);
+	
     m_program = new QOpenGLShaderProgram(this);
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
     m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
@@ -347,7 +347,7 @@ void GLWidget::initializeGL()
 	glmVertexNormals(ballModel, 90.0);
 
 
-	int size = 0;
+	int size = m_count;
 	size += arrowModel->numtriangles * 8 * 3;
 	size += arrowStraightModel->numtriangles * 8 * 3;
 	size += ballModel->numtriangles * 8 * 3;
@@ -1014,7 +1014,7 @@ void GLWidget::paintGL()
 		
 		if (boxList.at(i).selectedPlaneIndex != -1)
 		{
-			m_program->setUniformValue(m_assignedColor, QVector4D(colorList.at(i+4 % colorList.size())));
+			m_program->setUniformValue(m_assignedColor, QVector4D(colorList.at((i+4) % colorList.size())));
 			m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
 			drawPlane(boxList.at(i).getPlane(0), boxList.at(i).getPlane(1), boxList.at(i).getPlane(2), boxList.at(i).getPlane(3));
 		}	
@@ -1031,10 +1031,19 @@ void GLWidget::paintGL()
 		m_program->setUniformValue(m_assignedMode, true);
 	}
 
+	//if (false)
 	for (size_t i = 0; i < boxList.size(); i++)
 	for (size_t j = 0; j < boxList.at(i).shapeRange->size(); j++){
 		m_program->setUniformValue(m_assignedColor, colorList.at((j - 1 + i) % colorList.size()));
 		drawShape(boxList.at(i).shapeRange->at(j).first, boxList.at(i).shapeRange->at(j).second, boxList.at(i).m_transform);
+	}
+
+	if (bRawPC)
+	{
+		QMatrix4x4 im;
+		im.setToIdentity();
+		m_program->setUniformValue(m_assignedColor, colorList.at(0));
+		drawShape(rawPCBegin,rawPCEnd,im);
 	}
 			
 
@@ -1048,6 +1057,10 @@ void GLWidget::paintGL()
 	if (!drawShapeWithColor)
 	for (size_t i = 0; i < boxList.size(); i++){
 		m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())));
+		if (currentSelectBox == i)
+		{
+			m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())) * 1.5);
+		}
 		m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
 		for (size_t j = 0; j < 6; j++)
 		{
@@ -1071,11 +1084,6 @@ void GLWidget::drawShape(int begin, int end, QMatrix4x4 boxTransform){
 
 	m_program->setUniformValue(m_hasTex, true);
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxTransform);
-	m_program->setUniformValue(m_normalMatrixLoc, m_world.normalMatrix());
-	m_program->setUniformValue(matAmbientLoc, QVector3D(0.4, 0.4, 0.4));
-	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
-	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
-	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
 
 	glPointSize(3);
 	glDrawArrays(GL_POINTS, begin, end - begin);
@@ -1497,7 +1505,7 @@ void GLWidget::boxDoubleClick(const QModelIndex &qm){
 	currentSelectBox = qm.row();
 	//QMessageBox::information(0, tr("Cannot dock"), tr(QString::number(currentSelectBox).toStdString().c_str()));
 	emit boxUpdate(boxList.at(currentSelectBox).selectedPlaneIndex, boxList.at(currentSelectBox).selectedPointIndex[0], boxList.at(currentSelectBox).selectedPointIndex[1]);
-
+	update();
 }
 
 void GLWidget::jointDoubleClick(const QModelIndex & qm){
@@ -1573,29 +1581,10 @@ void GLWidget::editSliderValueChanged(int pValue){
 	if (bEditLength){
 		Vec3fShape point1, point2;
 		int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
-		switch (targetPlaneIndex)
-		{
-		case 0:
-			targetPlaneIndex = 1;
-			break;
-		case 1:
-			targetPlaneIndex = 0;
-			break;
-		case 2:
-			targetPlaneIndex = 3;
-			break;
-		case 3:
-			targetPlaneIndex = 2;
-			break;
-		case 4:
-			targetPlaneIndex = 5;
-			break;
-		case 5:
-			targetPlaneIndex = 4;
-			break;
-		default:
-			break;
-		}
+		if (targetPlaneIndex % 2 == 0)
+			targetPlaneIndex++;
+		else
+			targetPlaneIndex--;
 
 		point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0);
 		point2 = boxList.at(indexChildBox).getPlane(1);
@@ -1632,33 +1621,15 @@ void GLWidget::editSliderValueChanged(int pValue){
 		boxList.at(indexChildBox).getPlane(2) =
 			boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 3) + len *length;
 	}
+
 	if (bMoveBox)
 	{
 		Vec3fShape point1, point2;
 		int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
-		switch (targetPlaneIndex)
-		{
-		case 0:
-			targetPlaneIndex = 1;
-			break;
-		case 1:
-			targetPlaneIndex = 0;
-			break;
-		case 2:
-			targetPlaneIndex = 3;
-			break;
-		case 3:
-			targetPlaneIndex = 2;
-			break;
-		case 4:
-			targetPlaneIndex = 5;
-			break;
-		case 5:
-			targetPlaneIndex = 4;
-			break;
-		default:
-			break;
-		}
+		if (targetPlaneIndex % 2 == 0)
+			targetPlaneIndex++;
+		else
+			targetPlaneIndex--;
 
 		point1 = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0);
 		point2 = boxList.at(indexChildBox).getPlane(1);
@@ -1682,6 +1653,40 @@ void GLWidget::editSliderValueChanged(int pValue){
 			boxList.at(indexChildBox).vertex[i] = fixedPos[i] + len * length;
 		}
 	}
+
+	if (bRotateBox)
+	{
+		if (iEditLength)
+		{
+			iEditLength--;
+			for (size_t i = 0; i < 8; i++)
+			{
+				fixedPos[i] = boxList.at(indexChildBox).vertex[i];
+			}
+			return;
+		}
+
+		double rAngle = (pValue) / 500.0 * 180.0;
+
+		QMatrix4x4 pos;
+		pos.setToIdentity();
+		pos.translate(-ctrlRotateCenter[0], -ctrlRotateCenter[1], -ctrlRotateCenter[2]);
+		QMatrix4x4 rot;
+		rot.setToIdentity();
+		rot.rotate(rAngle, ctrlRotateAxis[0], ctrlRotateAxis[1], ctrlRotateAxis[2]);
+		QMatrix4x4 dPos;
+		dPos.setToIdentity();
+		dPos.translate(ctrlRotateCenter[0], ctrlRotateCenter[1], ctrlRotateCenter[2]);
+
+		QVector4D vPos;
+		for (size_t i = 0; i < 8; i++)
+		{
+			vPos = QVector4D(fixedPos[i][0], fixedPos[i][1], fixedPos[i][2], 1.0);
+			vPos = dPos * rot * pos * vPos;
+			boxList.at(indexChildBox).vertex[i] = Vec3fShape(vPos.x(),vPos.y(),vPos.z());
+		}
+	}
+
 	update();
 }
 
@@ -1934,6 +1939,7 @@ void GLWidget::shapeDetect(int signForGround ){
 void GLWidget::addConstraint(int index){
 	bEditLength = false;
 	bMoveBox = false;
+	bRotateBox = false;
 	switch (index)
 	{
 		case 0:{
@@ -2000,29 +2006,10 @@ void GLWidget::addConstraint(int index){
 				   point2 = boxList.at(indexParentBox).vertex[boxList.at(indexParentBox).selectedPointIndex[1]];
 				   double length = (point1 - point2).length();
 				   int targetPlaneIndex = boxList.at(indexChildBox).selectedPlaneIndex;
-				   switch (targetPlaneIndex)
-				   {
-				   case 0:
-					   targetPlaneIndex = 1;
-					   break;
-				   case 1:
-					   targetPlaneIndex = 0;
-					   break;
-				   case 2:
-					   targetPlaneIndex = 3;
-					   break;
-				   case 3:
-					   targetPlaneIndex = 2;
-					   break;
-				   case 4:
-					   targetPlaneIndex = 5;
-					   break;
-				   case 5:
-					   targetPlaneIndex = 4;
-					   break;
-				   default:
-					   break;
-				   }
+				   if (targetPlaneIndex % 2 == 0)
+					   targetPlaneIndex++;
+				   else
+					   targetPlaneIndex--;
 				   Vec3fShape len;
 				   len = boxList.at(indexChildBox).getTargetPlane(targetPlaneIndex, 0) - boxList.at(indexChildBox).getPlane(1);
 				   len.normalize();
@@ -2332,9 +2319,51 @@ void GLWidget::addConstraint(int index){
 
 		}
 			break;
+		case 10:{
+					ctrlRotateCenter = Vec3fShape(0, 0, 0);
+					for (size_t i = 0; i < 8; i++)
+					{
+						ctrlRotateCenter += boxList.at(indexChildBox).vertex[i];
+					}
+					ctrlRotateCenter /= 8;
+
+					ctrlRotateAxis = boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]] -
+						boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[1]];
+					ctrlRotateAxis.normalize();
+
+					iEditLength = 1;
+					emit editSliderReset();
+					bRotateBox = true;
+
+		}
+			break;
 		default:
 			break;
 	}
+	update();
+}
+
+void GLWidget::delJoint(){
+	std::vector<BoxJoint *>::iterator it = jointList.begin();
+	for (size_t i = 0; i < inxDelJoint; i++)
+		it++;
+	(*it)->child.joint = NULL;
+	(*it)->~BoxJoint();
+
+	jointList.erase(it);
+	emit jointUpdate(jointList);
+
+	currentJoint = NULL;
+	update();
+}
+void GLWidget::delBox(){
+	std::vector<Box>::iterator it = boxList.begin();
+	for (size_t i = 0; i < inxDelBox; i++)
+		it++;
+
+	boxList.erase(it);
+	emit boxUpdate(boxList);
+	currentBox = -1;
 	update();
 }
 

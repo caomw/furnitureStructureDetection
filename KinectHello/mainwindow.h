@@ -76,6 +76,8 @@ private slots:
 	void grabResUpdated();
 	void checkCheck();
 	void selectSubmit();
+	void jointTreeRight(const QPoint);
+	void boxTreeRight(const QPoint);
 
 private:
 	QString path;
