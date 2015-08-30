@@ -8,8 +8,8 @@
 #include <math.h>
 
 #define T(x) (model->triangles[(x)])
-std::string filePath = std::string("Resources/data3/");
-std::string fileHead = std::string("data2");
+std::string filePath = std::string("Resources/data4/");
+std::string fileHead = std::string("data4");
 
 VEC3D vec3fShape2VEC3D(Vec3fShape v){
 	return VEC3D(v[0], v[1], v[2]);
@@ -17,6 +17,11 @@ VEC3D vec3fShape2VEC3D(Vec3fShape v){
 
 Vec3fShape VEC3D2vec3fShape (VEC3D v){
 	return Vec3fShape(v.X(), v.Y(), v.Z());
+}
+
+void cam2tex(int& x, int& y, float depth, float camx, float camy){
+	x = (camx * 571.401f) / depth + 319.5f;
+	y = (camy * 571.401f) / depth + 239.5f;
 }
 
 GLWidget::GLWidget(QWidget *parent)
@@ -68,6 +73,7 @@ GLWidget::GLWidget(QWidget *parent)
 	colorList.push_back(QVector4D(1.0, 0.310f, 0.322f, 1.0));
 	setThisBoxCenter = false;
 	sendCenter.setToIdentity();
+	dx = dy = dz = 0.0f;
 }
 
 GLWidget::~GLWidget()
@@ -255,6 +261,93 @@ static const char *fragmentShaderSource =
 	//"		gl_FragColor = vec4(gl_Normal, 1.0);\n"
     "}\n";
 
+void GLWidget::laodRawPC(){
+	FILE *stream;
+	if ((stream = fopen("Resources/1_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	int bn;
+	fread(&bn, sizeof(int), 1, stream);
+
+	double center[3];
+	double scale[3];
+	double xd[3];
+	double yd[3];
+	double zd[3];
+
+	for (size_t i = 0; i < bn; i++)
+	{
+		fread(&center, 3 * sizeof(double), 1, stream);
+		fread(&scale, 3 * sizeof(double), 1, stream);
+		fread(&xd, 3 * sizeof(double), 1, stream);
+		fread(&yd, 3 * sizeof(double), 1, stream);
+		fread(&zd, 3 * sizeof(double), 1, stream);
+		Box temp(0);
+		Vec3fShape pc(center[0], center[1], center[2]);
+		Vec3fShape xr(xd[0], xd[1], xd[2]);
+		Vec3fShape yr(yd[0], yd[1], yd[2]);
+		Vec3fShape zr(zd[0], zd[1], zd[2]);
+
+		temp.vertex[0] = 1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[1] = 1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[2] = 1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[3] = 1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[4] = -1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[5] = -1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
+		temp.vertex[6] = -1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[7] = -1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+
+		temp.m_transform.setToIdentity();
+		boxList.push_back(temp);
+	}
+
+	fclose(stream);
+
+	if ((stream = fopen("Resources/1.pts", "rb")) == NULL)
+	{
+		fprintf(stderr, "Cannot open output file.\n");
+		return;
+	}
+	double non;
+	for (size_t i = 0; i < 3; i++)
+		fread(&non, sizeof(double), 1, stream);
+
+	int vn, nn, cn;
+	fread(&vn, sizeof(int), 1, stream);
+	double pos[3];
+
+	rawPCBegin = m_count / 8;
+	m_data.resize(m_count + vn * 3 * 8);
+	for (size_t i = 0; i < vn; i++)
+	{
+		fVertex hah;
+		fread(&hah, sizeof(fVertex), 1, stream);
+		vecPoints.push_back(hah);
+		add(
+			QVector3D(hah.items[0], hah.items[1], hah.items[2]),
+			QVector3D(1, 1, 1));
+		addTex(QVector2D(0.5, 0.5));
+	}
+	rawPCEnd = m_count / 8;
+	bRawPC = true;
+	boxUpdate(boxList);
+	update();
+}
+
+void GLWidget::updateRawPC(double dx, double dy, double dz){
+	//fVertex * ptrVertex = (fVertex*)m_data.data();
+	//ptrVertex += rawPCBegin;
+	for (size_t i = rawPCBegin; i < rawPCEnd; i++)
+	{
+		m_data[i * 8] = vecPoints.at(i - rawPCBegin).items[0] + dx;
+		m_data[i * 8 +1] = vecPoints.at(i - rawPCBegin).items[1] + dy;
+		m_data[i * 8 +2] = vecPoints.at(i - rawPCBegin).items[2] + dz;
+	}
+	update();
+}
+
 void GLWidget::initializeGL()
 {
     // In this example the widget's corresponding top-level window can change
@@ -268,7 +361,9 @@ void GLWidget::initializeGL()
 
     initializeOpenGLFunctions();
 	//glClearColor(0.285, 0.575, 0.285, m_transparent ? 0 : 1);
-	glClearColor(199 / 255.0f, 237 / 255.0f, 204/255.0f, m_transparent ? 0 : 1);
+	//glClearColor(199 / 255.0f, 237 / 255.0f, 204/255.0f, m_transparent ? 0 : 1);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	//glClearColor(0.3, 0.3, 0.3, 1);
 	
     m_program = new QOpenGLShaderProgram(this);
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
@@ -356,7 +451,34 @@ void GLWidget::initializeGL()
 	glmVN(arrowStraightModel);
 	glmVN(ballModel);
 	m_program->release();
+	//laodRawPC();
+	
 
+}
+
+void GLWidget::drawRawPC(){
+	bRawPC = true;
+	rawPCBegin = m_count / 8;
+	for (size_t i = 0; i < vertex.size(); i++)
+	{
+		if (vertex[i].length() < 0.001)
+			continue;
+		m_data.resize(m_count + 8);
+		add(
+			QVector3D(vertex[i][0] / 1000.0f,
+			vertex[i][1] / 1000.0f,
+			vertex[i][2] / 1000.0f),
+
+			QVector3D(normal[i][0],
+			normal[i][1],
+			normal[i][2])
+			);
+		int texX, texY;
+		cam2tex(texX, texY, vertex[i][2], vertex[i][0], vertex[i][1]);
+		addTex(QVector2D(texX / 640.0f, texY / 480.0f));
+	}
+	rawPCEnd = m_count / 8;
+	update();
 }
 
 void GLWidget::save(){
@@ -366,11 +488,6 @@ void GLWidget::save(){
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
 	}
-	//fwrite(&num, sizeof(num), 1, stream);
-	//for (size_t i = 0; i <jointList.size(); i++)
-	//{
-	//	fwrite(jointList.at(i), sizeof(BoxJoint), 1, stream);
-	//}
 	fwrite(&sendCenter, sizeof(QMatrix4x4), 1, stream);
 	fclose(stream);
 	int num = m_data.size();
@@ -818,7 +935,7 @@ void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float
 	rotation.rotate(alpha *180.0f / 3.1415926f, axis[0], axis[1], axis[2]);
 
 	Vec3fShape temp1, temp2;
-	if (z0 < z1)
+	if (z0 >z1)
 	{
 		temp1 = Vec3fShape(x0,y0,z0);
 		temp2 = Vec3fShape(x1, y1, z1);
@@ -939,7 +1056,6 @@ void GLWidget::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-
 	texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
 	if (!drawShapeWithColor){
@@ -965,6 +1081,7 @@ void GLWidget::paintGL()
 	glEnable(GL_BLEND);
 	glEnable(GL_LINE_SMOOTH);
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glLineWidth(1);
 	drawcoordinate(m_program, coord, m_world, m_fixedColor);
 	glDisable(GL_BLEND);
@@ -982,16 +1099,6 @@ void GLWidget::paintGL()
 	m_world.rotate(180, 0, 1, 0);
 	m_world = m_world * sendCenter;
 
-	glEnable(GL_BLEND);
-	glEnable(GL_LINE_SMOOTH);
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	//*************************** draw the edges of the box *************************************************
-	if (!drawShapeWithColor)
-		drawBoxLine();
-	glDisable(GL_BLEND);
-
 	//*************************** draw the joints ***********************************************************
 	if (bDrawJoint)
 		DrawJoints();
@@ -1001,6 +1108,17 @@ void GLWidget::paintGL()
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
 	m_program->setUniformValue(m_fixedPipeline, false);
 	m_program->setUniformValue(m_assignedMode, true);
+	m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 15, 0));
+	m_program->setUniformValue(m_viewPos, eye);
+	m_program->setUniformValue(m_hasTex, true);
+	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
+	m_program->setUniformValue(m_fixedPipeline, false);
+	m_program->setUniformValue(m_assignedMode, true);
+	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
+	m_program->setUniformValue(matAmbientLoc, QVector3D(0.5, 0.5, 0.5));
+	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
+	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
+	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
 	if (bDrawSelected)
 	for (size_t i = 0; i < boxList.size(); i++){
 		if (i != indexParentBox && i != indexChildBox)
@@ -1054,6 +1172,11 @@ void GLWidget::paintGL()
 	m_program->setUniformValue(m_fixedPipeline, false);
 	m_program->setUniformValue(m_assignedMode, true);
 	glDepthMask(GL_FALSE);
+
+	glEnable(GL_POLYGON_SMOOTH);
+	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	if (!drawShapeWithColor)
 	for (size_t i = 0; i < boxList.size(); i++){
 		m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())));
@@ -1068,6 +1191,16 @@ void GLWidget::paintGL()
 		}
 	}
 	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
+
+	//*************************** draw the edges of the box *************************************************
+	glEnable(GL_BLEND);
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);  // Antialias the lines
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	m_program->setUniformValue(m_fixedPipeline, true);
+	if (!drawShapeWithColor)
+		drawBoxLine();
 	glDisable(GL_BLEND);
 	m_program->release();
 }
@@ -1113,11 +1246,8 @@ void GLWidget::drawPoint(){
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
 	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
 	m_program->setUniformValue(m_hasTex, true);
-	m_program->setUniformValue(matAmbientLoc, QVector3D(0.4, 0.4, 0.4));
-	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
-	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
-	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
-	glPointSize(3);
+
+	glPointSize(1);
 	glDrawArrays(GL_POINTS, 0, rawPointCount);
 
 }
@@ -1132,13 +1262,6 @@ void GLWidget::drawModel(GLMmodel * model){
 	GLMtriangle* triangle;
 	GLuint i;
 	while (group) {
-		//{
-		//	m_program->setUniformValue(m_hasTex, false);
-		//	m_program->setUniformValue(matAmbientLoc, QVector3D(0.4, 0.4, 0.4));
-		//	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
-		//	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
-		//	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
-		//}
 		if (strcmp(group->name, " pCone1") == 0)
 			m_program->setUniformValue(m_assignedColor, QVector4D(0.0,0.0,0.9,0.0));
 		else
@@ -1241,10 +1364,6 @@ float rayTriangleIntersection(const QVector3D &pos, const QVector3D &dir, const 
 	return tt;
 }
 
-void cam2tex(int& x, int& y, float depth, float camx, float camy){
-	x = (camx * 571.401f) / depth + 319.5f;
-	y = (camy * 571.401f) / depth + 239.5f;
-}
 
 //void addBoxPoint(GLWidget * gl, const Box &b, int x, int y, int z){
 //	Vec3fShape it;
@@ -1398,38 +1517,38 @@ void GLWidget::boxTest(){
 	////shapeDetect();
 	////fs.release();
 
-	//BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
-	//joint1->setPivotPointIndex(2,6);
+	////BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(0), boxList.at(3));
+	////joint1->setPivotPointIndex(2,6);
 	////joint1->setPivotPoint(boxList.at(3).vertex[2], boxList.at(3).vertex[6]);
-	//joint1->setBoxIndex(0,3);
-	////joint1->rotate(90);
-	//joint1->setRange(-180, 180);
+	////joint1->setBoxIndex(0,3);
+	//////joint1->rotate(90);
+	////joint1->setRange(-180, 180);
 
-	//BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
-	//joint2->setPivotPointIndex(3, 7);
+	////BoxHingeJoint *joint2 = new BoxHingeJoint(boxList.at(0), boxList.at(4));
+	////joint2->setPivotPointIndex(3, 7);
 	////joint2->setPivotPoint(boxList.at(4).vertex[3], boxList.at(4).vertex[7]);
-	////joint2->rotate(-90);
-	//joint2->setBoxIndex(0, 4);
-	//joint2->setRange(-180, 180);
+	//////joint2->rotate(-90);
+	////joint2->setBoxIndex(0, 4);
+	////joint2->setRange(-180, 180);
 
-	//BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
-	//joint3->setPivotPointIndex(0, 1);
+	////BoxSliderJoint *joint3 = new BoxSliderJoint(boxList.at(0), boxList.at(1));
+	////joint3->setPivotPointIndex(0, 1);
 	////joint3->setPivotPoint(boxList.at(1).vertex[0], boxList.at(1).vertex[1]);
-	//joint3->setBoxIndex(0, 1);
-	//joint3->slide(0);
-	//joint3->setRange(-2, 2);
+	////joint3->setBoxIndex(0, 1);
+	////joint3->slide(0);
+	////joint3->setRange(-2, 2);
 
-	//BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
-	//joint4->setPivotPointIndex(0,1);
+	////BoxSliderJoint *joint4 = new BoxSliderJoint(boxList.at(0), boxList.at(2));
+	////joint4->setPivotPointIndex(0,1);
 	////joint4->setPivotPoint(boxList.at(2).vertex[0], boxList.at(2).vertex[1]);
-	//joint4->setBoxIndex(0, 2);
-	//joint4->slide(0);
-	//joint4->setRange(-2, 2);
+	////joint4->setBoxIndex(0, 2);
+	////joint4->slide(0);
+	////joint4->setRange(-2, 2);
 
-	//jointList.push_back(joint1);
-	//jointList.push_back(joint2);
-	//jointList.push_back(joint3);
-	//jointList.push_back(joint4);
+	////jointList.push_back(joint1);
+	////jointList.push_back(joint2);
+	////jointList.push_back(joint3);
+	////jointList.push_back(joint4);
 
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
@@ -2754,22 +2873,22 @@ void GLWidget::keyPressEvent(QKeyEvent * event){
 	
 	switch (event->key()){
 	case 'W':
-		setTrans(0, -0.1, 0,eyeAtMode); 
+		setTrans(0, -0.01, 0,eyeAtMode); 
 		break;
 	case 'S':
-		setTrans(0, 0.1, 0, eyeAtMode);
+		setTrans(0, 0.01, 0, eyeAtMode);
 		break;
 	case 'A':
-		setTrans(0.1, 0, 0, eyeAtMode);
+		setTrans(0.01, 0, 0, eyeAtMode);
 		break;
 	case 'D':
-		setTrans(-0.1, 0, 0, eyeAtMode);
+		setTrans(-0.01, 0, 0, eyeAtMode);
 		break;
 	case 'Q':
-		setTrans(0, 0, -0.1, eyeAtMode);
+		setTrans(0, 0, -0.01, eyeAtMode);
 		break;
 	case 'E':
-		setTrans(0, 0, 0.1, eyeAtMode);
+		setTrans(0, 0, 0.01, eyeAtMode);
 		break;
 	case Qt::Key_Space:{
 		eyeAtMode = 1 - eyeAtMode;
@@ -2797,7 +2916,47 @@ void GLWidget::keyPressEvent(QKeyEvent * event){
 		update();
 	}
 		break;
-
+	//case '1':
+	//	dx -= 0.005;
+	//	updateRawPC(dx,dy,dz);
+	//	break;
+	//case '2':
+	//	dx += 0.005;
+	//	updateRawPC(dx, dy, dz);
+	//	break;
+	//case '3':
+	//	dy -= 0.005;
+	//	updateRawPC(dx, dy, dz);
+	//	break;
+	//case '4':
+	//	dy += 0.005;
+	//	updateRawPC(dx, dy, dz);
+	//	break;
+	//case '5':
+	//	dz -= 0.005;
+	//	updateRawPC(dx, dy, dz);
+	//	break;
+	//case '6':
+	//	dz += 0.005;
+	//	updateRawPC(dx, dy, dz);
+	//	break;
+	case 'N':
+		storedEye = eye;
+		storedAt = at;
+		storedRx = m_xRot;
+		storedRy = m_yRot;
+		storedRz = m_zRot;
+		break;
+	case 'M':
+		eye = storedEye;
+		at = storedAt;
+		m_xRot = storedRx;
+		m_yRot = storedRy;
+		m_zRot = storedRz;
+		m_camera.setToIdentity();
+		m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
+		update();
+		break;
 	}
 }
 

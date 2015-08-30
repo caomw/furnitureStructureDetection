@@ -39,8 +39,10 @@ public:
 	enum{ NOT_SET = 0, IN_PROCESS = 1, SET = 2 };
 	uchar rectState, lblsState, prLblsState;
 	vector<QPoint> fgdPxls, bgdPxls, brutalPxls;
+	vector<vector<QPoint>> fgdLine, bgdLine;
 	void setLblsInMask(int flags, QPoint p);
 	PaintWidget* slave;
+	bool isRelease;
 
 signals:
 	void grabCutResult();

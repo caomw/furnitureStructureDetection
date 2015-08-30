@@ -388,10 +388,10 @@ static void constructGCGraphD(const Mat& img, const Mat& dep, const Mat& mask, c
 			double fromSource, toSink;
 			if (mask.at<uchar>(p) == GC_PR_BGD || mask.at<uchar>(p) == GC_PR_FGD)
 			{
-				fromSource = -log(bgdGMM(color)) * 2;
-				fromSource += -log(bgdGMMD(colorD));
-				toSink = -log(fgdGMM(color)) * 2;
-				toSink += -log(fgdGMMD(colorD));
+				fromSource = 0;// -log(bgdGMM(color)) * 0.8;
+				fromSource += -log(bgdGMMD(colorD)) * 10;
+				toSink = 0;//-log(fgdGMM(color)) * 0.8;
+				toSink += -log(fgdGMMD(colorD)) * 10;
 			}
 			else if (mask.at<uchar>(p) == GC_BGD)
 			{

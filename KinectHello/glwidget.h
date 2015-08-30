@@ -70,7 +70,7 @@ public:
 };
 
 typedef struct vertex{
-	float items[8];
+	double items[3];
 }fVertex;
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -159,19 +159,36 @@ public:
 	bool bDrawJoint;
 	bool bDrawSelected;
 	int eyeAtMode;
+
+	//move all the items to the origin of the coordinate
 	Vec3fShape boxCenter;
 	bool setThisBoxCenter;
 	QMatrix4x4 sendCenter;
+
+	//right click delete boxes
 	int inxDelBox;
 	int inxDelJoint;
 
+	//rotate the box center on the center of the box
+	Vec3fShape ctrlRotateAxis;
+	Vec3fShape ctrlRotateCenter;
+
+	//used when using the .box and .pts files
 	int rawPCBegin;
 	int rawPCEnd;
 	bool bRawPC;
 	bool bRotateBox;
-	Vec3fShape ctrlRotateAxis;
-	Vec3fShape ctrlRotateCenter;
-	
+	std::vector<fVertex> vecPoints;
+	void laodRawPC();
+	void updateRawPC(double dx, double dy, double dz);
+	double dx, dy, dz;
+
+	//perspective saving
+	QVector3D	storedEye;
+	QVector3D	storedAt;
+	double storedRx;
+	double storedRy;
+	double storedRz;
 
 public slots:
     void setXRotation(int angle);
@@ -213,6 +230,7 @@ public slots:
 	void drawSelected();
 	void delJoint();
 	void delBox();
+	void drawRawPC();
 
 signals:
     void xRotationChanged(int angle);

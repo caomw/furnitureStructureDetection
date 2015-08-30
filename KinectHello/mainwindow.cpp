@@ -17,7 +17,6 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *boxTestWidgetAction = new QAction(QIcon("Resources/box.png"), tr("&Box"), this);
 	QAction *shapeDrawWidgetAction = new QAction(QIcon("Resources/color.png"), tr("&Color"), this);
 	QAction *deleteWidgetAction = new QAction(QIcon("Resources/delete.png"), tr("&Delete"), this);
-	
 	QAction *saveWidgetAction = new QAction(QIcon("Resources/save.png"), tr("&Save"), this);
 	QAction *readWidgetAction = new QAction(QIcon("Resources/load.png"), tr("&Load"), this);
 
@@ -31,6 +30,10 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QAction *coXZAction = new QAction(tr("&XZ coordinate"), this);
 	QAction *drawJointAction = new QAction(tr("&Joints rendering switch"), this);
 	QAction *drawSelectedAction = new QAction(tr("&Selected item switch"), this);
+	
+	/*optional */
+	QAction *drawRawPCAction = new QAction(tr("&DrawRawPC"), this);
+	menuWindow->addAction(drawRawPCAction);
 
 	menuWindow->addAction(openAction);
 	menuWindow->addAction(coNoAction);
@@ -81,6 +84,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 
 	QGroupBox *groupBox = new QGroupBox(tr("Graphics"));
 	QVBoxLayout *cg = new QVBoxLayout(this);
+	//temp size
+	glWidget->setFixedSize(QSize(900,900));
 	cg->addWidget(glWidget);
 	groupBox->setLayout(cg);
 	groupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -106,6 +111,9 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(boxTestWidgetAction, SIGNAL(triggered()), glWidget, SLOT(boxTest()));
 	connect(brutalFinishWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeState()));
 	connect(brutalModeWidgetAction, SIGNAL(triggered()), rgbWidget, SLOT(brutalModeSwitch()));
+
+	//optional 
+	connect(drawRawPCAction, SIGNAL(triggered()), glWidget, SLOT(drawRawPC()));
 
 	rgbWidget->setSlave(depthWidget);
     setMenuBar(menuBar);
@@ -422,7 +430,7 @@ void MainWindow::grabResUpdated(/*cv::Mat**/){
 	//glWidget->shapeDetect();
 	//imwrite("back.bmp", rgbWidget->gcapp.binMask);
 
-	//FileStorage fs("data2_ground.xml", FileStorage::WRITE);
+	//FileStorage fs("data4_ground.xml", FileStorage::WRITE);
 	//fs << "vocabulary" << rgbWidget->gcapp.binMask;
 	//fs.release();
 
@@ -437,7 +445,7 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data2");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data4");
 
 	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
 	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
@@ -518,12 +526,11 @@ void MainWindow::openFolder(){
 	depthWidget->setImage(*depthImage);
 	rgbWidget->setDepth(*depthImage);
 	glWidget->update();
-	//return;
+	return;
 	//******************read raw data of box and pts
 
 	FILE *stream;
-
-	if ((stream = fopen("Resources/3_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen("Resources/1_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -570,8 +577,7 @@ void MainWindow::openFolder(){
 
 	fclose(stream);
 
-
-	if ((stream = fopen("Resources/3.pts", "rb")) == NULL)
+	if ((stream = fopen("Resources/1.pts", "rb")) == NULL)
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -585,7 +591,7 @@ void MainWindow::openFolder(){
 	double pos[3];
 	
 	glWidget->rawPCBegin = glWidget->m_count / 8;
-	glWidget->m_data.resize(vn * 3 * 8);
+	glWidget->m_data.resize(glWidget->m_count + vn * 3 * 8);
 	for (size_t i = 0; i < vn; i++)
 	{
 		fread(pos, 3 * sizeof(double), 1, stream);

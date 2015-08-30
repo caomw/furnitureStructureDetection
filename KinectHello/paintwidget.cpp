@@ -95,15 +95,17 @@ void PaintWidget::paintEvent(QPaintEvent *event)
 
 
 	painter.setPen(QPen(Qt::blue, 3));
-	for (size_t i = 0; i < bgdPxls.size(); i++)
+	painter.drawPolyline(bgdPxls.data(), bgdPxls.size());
+	for (size_t i = 0; i < bgdLine.size(); i++)
 	{
-		painter.drawPoint(bgdPxls.at(i));
+		painter.drawPolyline(bgdLine.at(i).data(), bgdLine.at(i).size());
 	}
 
 	painter.setPen(QPen(Qt::red, 3));
-	for (size_t i = 0; i < fgdPxls.size(); i++)
+	painter.drawPolyline(fgdPxls.data(), fgdPxls.size());
+	for (size_t i = 0; i < fgdLine.size(); i++)
 	{
-		painter.drawPoint(fgdPxls.at(i));
+		painter.drawPolyline(fgdLine.at(i).data(),fgdLine.at(i).size());
 	}
 
 	if (brutalMode){
@@ -153,26 +155,34 @@ void PaintWidget::setLblsInMask(int flags, QPoint p)
 		bpxls->push_back(p);
 		slave->bgdPxls.push_back(p);
 		//circle(mask, p, radius, bvalue, thickness);
+		if (isRelease)
+		{
+			bgdLine.push_back(bgdPxls);
+			bpxls->clear();
+			slave->bgdLine.push_back(bgdPxls);
+			slave->bgdPxls.clear();
+		}
 	}
 	if (flags & Qt::ShiftModifier)
 	{
-		//if (brutalMode){
-		//	brutalPxls.push_back(p);
-		//	slave->brutalPxls.push_back(p);
-		//}
-		//else
-		//{
 		fpxls->push_back(p);
 		slave->fgdPxls.push_back(p);
-		//}
+		if (isRelease)
+		{
+			fgdLine.push_back(fgdPxls);
+			fgdPxls.clear();
+			slave->fgdLine.push_back(fgdPxls);
+			slave->fgdPxls.clear();
 
-		//circle(mask, p, radius, fvalue, thickness);
+		}
+
 	}
 }
 
 void PaintWidget::mousePressEvent(QMouseEvent *event){
 	if (drawable){
 		leftButtonPressed = true;
+		isRelease = false;
 		if (event->buttons() & Qt::LeftButton){
 			mouseButton = LEFTB;
 			bool isb = (event->modifiers() & Qt::ControlModifier),
@@ -184,8 +194,7 @@ void PaintWidget::mousePressEvent(QMouseEvent *event){
 				slave->brutalPxls.push_back(QPoint(event->x(), event->y()));
 			}
 			else{
-				
-				//gcapp.rectState = gcapp.NOT_SET;
+			
 				if (rectState == NOT_SET && !isb && !isf)
 				{
 					rectState = IN_PROCESS;
@@ -260,12 +269,10 @@ void PaintWidget::mouseReleaseEvent(QMouseEvent *event){
 				rect = QRect(rectLU, QPoint(event->x(), event->y()));
 				rectState = SET;
 				slave->rect = rect;
-				//gcapp.setRectInMask();
-				//assert(bgdPxls.empty() && fgdPxls.empty() && prBgdPxls.empty() && prFgdPxls.empty());
-				//showImage();
 			}
 			if (lblsState == IN_PROCESS)
 			{
+				isRelease = true;
 				setLblsInMask(event->modifiers(), QPoint(event->x(), event->y()));
 				lblsState = SET;
 
@@ -305,9 +312,13 @@ void PaintWidget::grabCutIteration(){
 	gcapp.nextIter();
 	//gcapp.showImage();
 	fgdPxls.clear();
+	fgdLine.clear();
 	bgdPxls.clear();
+	bgdLine.clear();
 	slave->fgdPxls.clear();
 	slave->bgdPxls.clear();
+	slave->bgdLine.clear();
+	slave->fgdLine.clear();
 	brutalPxls.clear();
 	brutalDone = false;
 	update();
