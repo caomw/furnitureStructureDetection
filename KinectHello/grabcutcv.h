@@ -72,8 +72,10 @@ public:
 	bool brutalDone;
 	void brutalSelectDone();
 	vector<Point> fgdPxls, bgdPxls, prFgdPxls, prBgdPxls;
+	vector<vector<Point>> fgdLine, bgdLine;
 	vector<Point> brutalPxls;
 	Rect rect;
+	bool isRelease;
 
 private:
 	void setRectInMask();

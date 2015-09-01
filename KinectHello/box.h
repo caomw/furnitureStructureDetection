@@ -54,6 +54,7 @@ public:
 		shapeRange = new std::vector<std::pair<int, int>>;
 		pivotPoint[0] = -1;
 		pivotPoint[1] = -1;
+		joint = NULL;
 
 	};
 	Box(int t){
@@ -63,6 +64,7 @@ public:
 		shapeRange = new std::vector<std::pair<int, int>>;
 		pivotPoint[0] = -1;
 		pivotPoint[1] = -1;
+		joint = NULL;
 	};
 	Vec3fShape& getPlane(int index){
 		if (index < 0 || index > 3 )

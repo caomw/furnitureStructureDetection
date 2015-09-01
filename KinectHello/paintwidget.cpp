@@ -154,7 +154,6 @@ void PaintWidget::setLblsInMask(int flags, QPoint p)
 	{
 		bpxls->push_back(p);
 		slave->bgdPxls.push_back(p);
-		//circle(mask, p, radius, bvalue, thickness);
 		if (isRelease)
 		{
 			bgdLine.push_back(bgdPxls);
@@ -173,7 +172,6 @@ void PaintWidget::setLblsInMask(int flags, QPoint p)
 			fgdPxls.clear();
 			slave->fgdLine.push_back(fgdPxls);
 			slave->fgdPxls.clear();
-
 		}
 
 	}

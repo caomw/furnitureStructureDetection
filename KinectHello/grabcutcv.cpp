@@ -503,7 +503,7 @@ void GCApplication::reset()
 		mask.setTo(Scalar::all(GC_BGD));
 	bgdPxls.clear(); fgdPxls.clear();
 	prBgdPxls.clear();  prFgdPxls.clear();
-
+	fgdLine.clear(); bgdLine.clear();
 	isInitialized = false;
 	rectState = NOT_SET;
 	lblsState = NOT_SET;
@@ -631,35 +631,38 @@ void GCApplication::setLblsInMask(int flags, Point p, bool isPr)
 		bvalue = GC_PR_BGD;
 		fvalue = GC_PR_FGD;
 	}
-	//if (flags & BGD_KEY)
-	//{
-	//	bpxls->push_back(p);
-	//	circle(mask, p, radius, bvalue, thickness);
-	//}
-	//if (flags & FGD_KEY)
-	//{
-	//	fpxls->push_back(p);
-	//	circle(mask, p, radius, fvalue, thickness);
-	//}
-
-
 
 	{
 		if (flags & Qt::ControlModifier)
 		{
 			bpxls->push_back(p);
-			circle(mask, p, radius, bvalue, thickness);
+			//circle(mask, p, radius, bvalue, thickness);
+			if (isRelease)
+			{
+				//bgdLine.push_back(bgdPxls);
+				
+				const Point* ppt[1] = { bgdPxls.data() };
+				int npt[] = { bgdPxls.size() };
+				polylines(mask, ppt, npt, 1, false, GC_BGD, 3, 8, 0);
+				bpxls->clear();
+			}
 		}
 		if (flags & Qt::ShiftModifier)
 		{
 
 			fpxls->push_back(p);
-			circle(mask, p, radius, fvalue, thickness);
-
+			//circle(mask, p, radius, fvalue, thickness);
+			if (isRelease)
+			{
+				//fgdLine.push_back(fgdPxls);
+				const Point* ppt[1] = { fgdPxls.data() };
+				int npt[] = { fgdPxls.size() };
+				polylines(mask, ppt, npt, 1, false, GC_FGD,3,8,0);
+				fgdPxls.clear();
+			}
 		}
 	}
 	
-
 }
 
 void GCApplication::QMouseClick(int event, int x, int y, int flags)
@@ -669,6 +672,7 @@ void GCApplication::QMouseClick(int event, int x, int y, int flags)
 	{
 	case CV_EVENT_LBUTTONDOWN: // set rect or GC_BGD(GC_FGD) labels
 	{
+		isRelease = false;
 		bool isb = (flags & Qt::ControlModifier),
 			isf = (flags & Qt::ShiftModifier);
 		if (brutalMode)
@@ -706,6 +710,7 @@ void GCApplication::QMouseClick(int event, int x, int y, int flags)
 		}
 		if (lblsState == IN_PROCESS)
 		{
+			isRelease = true;
 			setLblsInMask(flags, Point(x, y), false);
 			lblsState = SET;
 			brutalDone = true;
@@ -837,6 +842,7 @@ int GCApplication::nextIterRaw()
 	iterCount++;
 
 	bgdPxls.clear(); fgdPxls.clear();
+	fgdLine.clear(); bgdLine.clear();
 	prBgdPxls.clear(); prFgdPxls.clear();
 	brutalPxls.clear();
 	brutalDone = false;
@@ -868,8 +874,8 @@ int GCApplication::nextIter()
 	isInitialized = true;
 
 	showImage();
-
 	bgdPxls.clear(); fgdPxls.clear();
+	fgdLine.clear(); bgdLine.clear();
 	prBgdPxls.clear(); prFgdPxls.clear();
 	brutalPxls.clear();
 	brutalDone = false;

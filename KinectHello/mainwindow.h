@@ -63,7 +63,8 @@ signals:
 	void addConstraint(int);
 
 public slots:
-void jointUpdate(std::vector<BoxJoint *> pJointList);
+	void jointUpdate(std::vector<BoxJoint *> pJointList);
+	void jointUpdate(std::vector<associateNode> pJointList);
 	void boxUpdate(std::vector<Box> pboxList);
 	void jointDoubleClick(const QModelIndex&);
 	void jointSliderUpdate(double, double, double);

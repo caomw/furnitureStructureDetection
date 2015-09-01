@@ -48,6 +48,14 @@ typedef struct node{
 	int modelIndex = 0;
 } modelGuy;
 
+class associateNode{
+public:
+	associateNode(Box &pParent, Box& pChild) :parent(pParent), child(pChild){
+	};
+	Box& parent;
+	Box& child;
+};
+
 class triangle{
 public:
 	triangle(const QVector4D & a0, const QVector4D & a1, const QVector4D & a2):v0(a0),e1(a1),e2(a2){
@@ -72,6 +80,15 @@ public:
 typedef struct vertex{
 	double items[3];
 }fVertex;
+
+typedef struct BoxFileNode{
+	double center[3];
+	double scale[3];
+	double xd[3];
+	double yd[3];
+	double zd[3];
+	std::vector<Vec3fShape> boxVer;
+}BoxFile;
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -138,7 +155,7 @@ public:
 	void shapeDetect(int signForGround = 0);
 	BoxJoint * currentJoint;
 	void DrawArrow(float x0, float y0, float z0, float x1, float y1, float z1, QMatrix4x4 box);
-	void DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1);
+	void DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1, int signal = 0);
 	void DrawBall(float x0, float y0, float z0, float x1, QMatrix4x4 boxTransform);
 	void DrawTorus(float in, float out);
 	void DrawJoints();
@@ -178,10 +195,12 @@ public:
 	int rawPCEnd;
 	bool bRawPC;
 	bool bRotateBox;
-	std::vector<fVertex> vecPoints;
+	std::vector<Vec3fShape> vecPoints;
 	void laodRawPC();
 	void updateRawPC(double dx, double dy, double dz);
 	double dx, dy, dz;
+	std::vector<BoxFile> boxFileList;
+	void segPC();
 
 	//perspective saving
 	QVector3D	storedEye;
@@ -189,6 +208,11 @@ public:
 	double storedRx;
 	double storedRy;
 	double storedRz;
+
+	//associate
+	std::vector<associateNode> associateList;
+
+	bool rawPCFirst;
 
 public slots:
     void setXRotation(int angle);
@@ -243,6 +267,7 @@ signals:
 	void currentMeshChanged(int index);
 	//*************** furniture
 	void jointUpdate(std::vector<BoxJoint *> pJointList);
+	void jointUpdate(std::vector<associateNode> pJointList);
 	void boxUpdate(std::vector<Box> pBoxList);
 	void jointSliderChanged(double, double, double);
 	void boxUpdate(int plane, int point1, int point2);

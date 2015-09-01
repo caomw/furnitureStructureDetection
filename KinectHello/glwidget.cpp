@@ -8,8 +8,8 @@
 #include <math.h>
 
 #define T(x) (model->triangles[(x)])
-std::string filePath = std::string("Resources/data4/");
-std::string fileHead = std::string("data4");
+std::string filePath = std::string("Resources/data0/");
+std::string fileHead = std::string("data0");
 
 VEC3D vec3fShape2VEC3D(Vec3fShape v){
 	return VEC3D(v[0], v[1], v[2]);
@@ -62,6 +62,7 @@ GLWidget::GLWidget(QWidget *parent)
 
 	m_data.reserve(640 * 480 *24);
 
+	colorList.push_back(QVector4D(248 / 255.0f, 185 / 255.0f, 64 / 255.0f, 1.0));
 	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 0 / 255.0f,1.0));
 	colorList.push_back(QVector4D(255 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
 	colorList.push_back(QVector4D(0 / 255.0f, 255 / 255.0f, 255 / 255.0f,1.0));
@@ -263,7 +264,7 @@ static const char *fragmentShaderSource =
 
 void GLWidget::laodRawPC(){
 	FILE *stream;
-	if ((stream = fopen("Resources/1_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen("Resources/3_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -276,36 +277,39 @@ void GLWidget::laodRawPC(){
 	double xd[3];
 	double yd[3];
 	double zd[3];
+	BoxFile tempB;
+
 
 	for (size_t i = 0; i < bn; i++)
 	{
-		fread(&center, 3 * sizeof(double), 1, stream);
-		fread(&scale, 3 * sizeof(double), 1, stream);
-		fread(&xd, 3 * sizeof(double), 1, stream);
-		fread(&yd, 3 * sizeof(double), 1, stream);
-		fread(&zd, 3 * sizeof(double), 1, stream);
+		fread(&tempB.center, 3 * sizeof(double), 1, stream);
+		fread(&tempB.scale, 3 * sizeof(double), 1, stream);
+		fread(&tempB.xd, 3 * sizeof(double), 1, stream);
+		fread(&tempB.yd, 3 * sizeof(double), 1, stream);
+		fread(&tempB.zd, 3 * sizeof(double), 1, stream);
 		Box temp(0);
-		Vec3fShape pc(center[0], center[1], center[2]);
-		Vec3fShape xr(xd[0], xd[1], xd[2]);
-		Vec3fShape yr(yd[0], yd[1], yd[2]);
-		Vec3fShape zr(zd[0], zd[1], zd[2]);
+		Vec3fShape pc(tempB.center[0], tempB.center[1], tempB.center[2]);
+		Vec3fShape xr(tempB.xd[0], tempB.xd[1], tempB.xd[2]);
+		Vec3fShape yr(tempB.yd[0], tempB.yd[1], tempB.yd[2]);
+		Vec3fShape zr(tempB.zd[0], tempB.zd[1], tempB.zd[2]);
 
-		temp.vertex[0] = 1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
-		temp.vertex[1] = 1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
-		temp.vertex[2] = 1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
-		temp.vertex[3] = 1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
-		temp.vertex[4] = -1 * scale[0] * xr + -1 * scale[1] * yr + 1 * scale[2] * zr + pc;
-		temp.vertex[5] = -1 * scale[0] * xr + 1 * scale[1] * yr + 1 * scale[2] * zr + pc;
-		temp.vertex[6] = -1 * scale[0] * xr + 1 * scale[1] * yr + -1 * scale[2] * zr + pc;
-		temp.vertex[7] = -1 * scale[0] * xr + -1 * scale[1] * yr + -1 * scale[2] * zr + pc;
+		temp.vertex[0] = 1 * tempB.scale[0] * xr + -1 * tempB.scale[1] * yr + 1 * tempB.scale[2] * zr + pc;
+		temp.vertex[1] = 1 * tempB.scale[0] * xr + 1 * tempB.scale[1] * yr + 1 * tempB.scale[2] * zr + pc;
+		temp.vertex[2] = 1 * tempB.scale[0] * xr + 1 * tempB.scale[1] * yr + -1 * tempB.scale[2] * zr + pc;
+		temp.vertex[3] = 1 * tempB.scale[0] * xr + -1 * tempB.scale[1] * yr + -1 * tempB.scale[2] * zr + pc;
+		temp.vertex[4] = -1 * tempB.scale[0] * xr + -1 * tempB.scale[1] * yr + 1 * tempB.scale[2] * zr + pc;
+		temp.vertex[5] = -1 * tempB.scale[0] * xr + 1 * tempB.scale[1] * yr + 1 * tempB.scale[2] * zr + pc;
+		temp.vertex[6] = -1 * tempB.scale[0] * xr + 1 * tempB.scale[1] * yr + -1 * tempB.scale[2] * zr + pc;
+		temp.vertex[7] = -1 * tempB.scale[0] * xr + -1 * tempB.scale[1] * yr + -1 * tempB.scale[2] * zr + pc;
 
 		temp.m_transform.setToIdentity();
 		boxList.push_back(temp);
+		//boxFileList.push_back(tempB);
 	}
 
 	fclose(stream);
 
-	if ((stream = fopen("Resources/1.pts", "rb")) == NULL)
+	if ((stream = fopen("Resources/3.pts", "rb")) == NULL)
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -324,7 +328,7 @@ void GLWidget::laodRawPC(){
 	{
 		fVertex hah;
 		fread(&hah, sizeof(fVertex), 1, stream);
-		vecPoints.push_back(hah);
+		vecPoints.push_back(Vec3fShape(hah.items[0], hah.items[1], hah.items[2]));
 		add(
 			QVector3D(hah.items[0], hah.items[1], hah.items[2]),
 			QVector3D(1, 1, 1));
@@ -341,11 +345,77 @@ void GLWidget::updateRawPC(double dx, double dy, double dz){
 	//ptrVertex += rawPCBegin;
 	for (size_t i = rawPCBegin; i < rawPCEnd; i++)
 	{
-		m_data[i * 8] = vecPoints.at(i - rawPCBegin).items[0] + dx;
-		m_data[i * 8 +1] = vecPoints.at(i - rawPCBegin).items[1] + dy;
-		m_data[i * 8 +2] = vecPoints.at(i - rawPCBegin).items[2] + dz;
+		m_data[i * 8] = vecPoints.at(i - rawPCBegin)[0] + dx;
+		m_data[i * 8 +1] = vecPoints.at(i - rawPCBegin)[1] + dy;
+		m_data[i * 8 +2] = vecPoints.at(i - rawPCBegin)[2] + dz;
 	}
 	update();
+}
+
+//bool vertexInBox(Vec3fShape p, BoxFile box){
+//	Vec3fShape dp;
+//	Vec3fShape center(box.center[0], box.center[1], box.center[2]);
+//	Vec3fShape dx(box.xd[0], box.xd[1], box.xd[2]);
+//	Vec3fShape dy(box.yd[0], box.yd[1], box.yd[2]);
+//	Vec3fShape dz(box.zd[0], box.zd[1], box.zd[2]);
+//
+//	dx.normalize();
+//	dy.normalize();
+//	dz.normalize();
+//	dp = p - center;
+//	if (dp.dot(dx) > -box.scale[0] && dp.dot(dx) < box.scale[0]){
+//		if (dp.dot(dy) > -box.scale[1] && dp.dot(dy) < box.scale[1]){
+//			if (dp.dot(dz) > -box.scale[2] && dp.dot(dz) < box.scale[2]){
+//				return true;
+//			}
+//			else
+//				return false;
+//		}
+//		else
+//			return false;
+//	}
+//	else
+//		return false;
+//}
+
+bool vertexInBox(Vec3fShape p, Box box){
+	Vec3fShape dp;
+	Vec3fShape center(0,0,0);
+
+	for (size_t i = 0; i < 8; i++)
+	{
+		center += box.vertex[i];
+	}
+	center /= 8;
+
+	Vec3fShape dx = box.vertex[1] - box.vertex[0];
+	Vec3fShape dy = box.vertex[3] - box.vertex[0];
+	Vec3fShape dz = box.vertex[4] - box.vertex[0];
+
+	double scale[3];
+	scale[0] = dx.length() / 2.0;
+	scale[1] = dy.length() / 2.0;
+	scale[2] = dz.length() / 2.0;
+
+	dx.normalize();
+	dy.normalize();
+	dz.normalize();
+
+	dp = p - center;
+
+	if (dp.dot(dx) > -scale[0] && dp.dot(dx) < scale[0]){
+		if (dp.dot(dy) > -scale[1] && dp.dot(dy) < scale[1]){
+			if (dp.dot(dz) > -scale[2] && dp.dot(dz) < scale[2]){
+				return true;
+			}
+			else
+				return false;
+		}
+		else
+			return false;
+	}
+	else
+		return false;
 }
 
 void GLWidget::initializeGL()
@@ -451,9 +521,61 @@ void GLWidget::initializeGL()
 	glmVN(arrowStraightModel);
 	glmVN(ballModel);
 	m_program->release();
-	//laodRawPC();
-	
 
+	//special process for the manually constructed points cloud
+	//laodRawPC();
+	//rawPCFirst = true;
+	
+}
+
+void GLWidget::segPC(){
+	//for (size_t i = 0; i < vecPoints.size(); i++)
+	boxFileList.clear();
+	for (size_t j = 0; j < boxList.size(); j++){
+		BoxFile t;
+		boxFileList.push_back(t);
+	}
+		
+	for (std::vector<Vec3fShape>::iterator it =vecPoints.begin(); it != vecPoints.end(); it++)
+	{
+		for (size_t j = 0; j < boxList.size(); j++)
+		{
+			if (vertexInBox(*it, boxList.at(j))){
+				if (it->length() > 0.001)
+				{
+					boxFileList.at(j).boxVer.push_back(*it);
+					*it = Vec3fShape(0, 0, 0);
+					break;
+				}
+
+			}
+		}
+	}
+
+	//for (size_t i = rawPCBegin; i < rawPCEnd; i++)
+	//{
+	//	m_data[i * 8] = vecPoints.at(i - rawPCBegin)[0] + dx;
+	//	m_data[i * 8 + 1] = vecPoints.at(i - rawPCBegin)[1] + dy;
+	//	m_data[i * 8 + 2] = vecPoints.at(i - rawPCBegin)[2] + dz;
+	//}
+
+	int pt = rawPCBegin;
+	int count = 0;
+
+	for (size_t i = 0; i < boxList.size(); i++)
+	{
+		pt = rawPCBegin + count;
+		for (size_t j = 0; j < boxFileList.at(i).boxVer.size(); j++)
+		{
+			m_data[(pt + j) * 8] = boxFileList.at(i).boxVer.at(j)[0];
+			m_data[(pt + j) * 8 + 1] = boxFileList.at(i).boxVer.at(j)[1];
+			m_data[(pt + j) * 8 + 2] = boxFileList.at(i).boxVer.at(j)[2];
+		}
+		count += boxFileList.at(i).boxVer.size();
+
+		boxList.at(i).boxBegin = pt;
+		boxList.at(i).boxEnd = rawPCBegin + count;
+	}
 }
 
 void GLWidget::drawRawPC(){
@@ -489,6 +611,13 @@ void GLWidget::save(){
 		return;
 	}
 	fwrite(&sendCenter, sizeof(QMatrix4x4), 1, stream);
+
+	fwrite(&eye, sizeof(eye), 1, stream);
+	fwrite(&at, sizeof(at), 1, stream);
+	fwrite(&m_xRot, sizeof(m_xRot), 1, stream);
+	fwrite(&m_yRot, sizeof(m_yRot), 1, stream);
+	fwrite(&m_zRot, sizeof(m_zRot), 1, stream);
+
 	fclose(stream);
 	int num = m_data.size();
 	//***********save rendering buffer data
@@ -541,6 +670,8 @@ void GLWidget::save(){
 		fwrite(jointList.at(i), sizeof(BoxJoint), 1, stream);
 	}
 	fclose(stream);
+
+
 }
 
 void GLWidget::read(){
@@ -640,11 +771,30 @@ void GLWidget::read(){
 	QMatrix4x4 * newMat = new QMatrix4x4();
 	fread(newMat, sizeof(QMatrix4x4), 1, stream);
 	sendCenter = *newMat;
+
+	fread(&eye, sizeof(eye), 1, stream);
+	fread(&at, sizeof(at), 1, stream);
+	fread(&m_xRot, sizeof(m_xRot), 1, stream);
+	fread(&m_yRot, sizeof(m_yRot), 1, stream);
+	fread(&m_zRot, sizeof(m_zRot), 1, stream);
+
 	fclose(stream);
 
+	if (rawPCFirst)
+	{
+		segPC();
+		rawPCFirst = false;
+	}
+	
+
+	//for (size_t i = 0; i < boxList.size(); i++)
+	//{
+	//	boxList.at(i).joint = NULL;
+	//}
 	update();
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
+	
 }
 
 bool GLWidget::loadTexture(GLMmodel* model){
@@ -903,11 +1053,11 @@ void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float
 	double alpha = acos(dir.dot(Vec3fShape(0, 0, 1)));
 
 	QMatrix4x4 trans;
-	trans.translate(0,0,-1.25);
+	trans.translate(0,0,-1.85);
 
 	QMatrix4x4 rotation;
 	rotation.setToIdentity();
-	rotation.scale(0.15);
+	rotation.scale(0.1);
 	rotation.rotate(alpha *180.0f / 3.1415926f, axis[0], axis[1], axis[2]);
 
 	QMatrix4x4 pos;
@@ -919,7 +1069,7 @@ void GLWidget::DrawArrow(float x0, float y0, float z0, float x1, float y1, float
 	
 }
 
-void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1){
+void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float z1, int signal){
 
 	Vec3fShape dir(x1 - x0, y1 - y0, z1 - z0);
 	Vec3fShape axis = Vec3fShape(0, 0, 1).cross(dir);
@@ -931,11 +1081,11 @@ void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float
 	r2.rotate(180.0, 0, 0, 1);
 	QMatrix4x4 rotation;
 	rotation.setToIdentity();
-	rotation.scale(0.15);
+	rotation.scale(0.1);
 	rotation.rotate(alpha *180.0f / 3.1415926f, axis[0], axis[1], axis[2]);
 
 	Vec3fShape temp1, temp2;
-	if (z0 >z1)
+	if (z0 > z1)
 	{
 		temp1 = Vec3fShape(x0,y0,z0);
 		temp2 = Vec3fShape(x1, y1, z1);
@@ -944,13 +1094,44 @@ void GLWidget::DrawTorus(float x0, float y0, float z0, float x1, float y1, float
 		temp2 = Vec3fShape(x0, y0, z0);
 		temp1 = Vec3fShape(x1, y1, z1);
 	}
+
+	//hack code
+	if (signal == 1 )
+	{
+		Vec3fShape tt = temp1;
+		temp1 = temp2;
+		temp2 = tt;
+	}
+
+
 	Vec3fShape offset = temp1 - temp2;
-	temp1 = offset * 1.28;
-	temp2 = temp2 + temp1;
+	if (signal == 3){
+		temp1 = offset * 1.25;
+		temp2 = temp2 + temp1;
+	}
+	else if (signal == 4){
+		temp1 = offset * 1.05;
+		temp2 = temp2 + temp1;
+	}else
+	{
+		temp1 = offset * 1.2;
+		temp2 = temp2 + temp1;
+	}
+
+
+	if (signal == 4)
+	{
+		r2.setToIdentity();
+		r2.rotate(-45.0, 0, 0, 1);
+	}
+
 	QMatrix4x4 pos;
 	pos.setToIdentity();
 	//pos.translate((x0 + x1) / 2.0f, (y0 + y1) / 2.0f, (z0 + z1) / 2.0f);
 	pos.translate(temp2[0], temp2[1], temp2[2]);
+
+
+
 
 	m_program->setUniformValue(m_mvMatrixLoc, m_camera *m_world * pos * rotation * r2);
 	drawModel(arrowModel);
@@ -979,8 +1160,8 @@ void GLWidget::DrawJoints(){
 	m_program->setUniformValue(m_fixedPipeline, false);
 	m_program->setUniformValue(m_assignedMode, true);
 	m_program->setUniformValue(m_normalMatrixLoc, (m_world).normalMatrix());
-	m_program->setUniformValue(matAmbientLoc, QVector3D(0.5, 0.5, 0.5));
-	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.6, 0.6, 0.6));
+	m_program->setUniformValue(matAmbientLoc, QVector3D(0.8, 0.8, 0.8));
+	m_program->setUniformValue(matDiffuseLoc, QVector3D(0.2, 0.2, 0.2));
 	m_program->setUniformValue(matSpecularLoc, QVector3D(0.0, 0.0, 0.0));
 	m_program->setUniformValue(matShineLoc, (GLfloat)65.0);
 
@@ -989,8 +1170,46 @@ void GLWidget::DrawJoints(){
 		//m_program->setUniformValue(m_assignedColor, colorList.at(i));
 		Vec3fShape temp0 = jointList.at(i)->getPivotPoint(0);
 		Vec3fShape temp1 = jointList.at(i)->getPivotPoint(1);
-		if (jointList.at(i)->getType() == BoxJoint::HINGE)
-			DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2]);
+		bool flag = false;
+		for (size_t z = 0; z < associateList.size(); z++)
+		{
+			if (associateList.at(z).child.m_transform == jointList.at(i)->child.m_transform)
+			{
+				flag = true;
+			}
+		}
+		if (flag)
+		{
+			QVector4D ptemp0(temp0[0], temp0[1], temp0[2], 1.0);
+			QVector4D ptemp1(temp1[0], temp1[1], temp1[2], 1.0);
+
+			ptemp0 = jointList.at(i)->child.m_transform * ptemp0;
+			ptemp1 = jointList.at(i)->child.m_transform * ptemp1;
+			temp0 = Vec3fShape(ptemp0.x(), ptemp0.y(), ptemp0.z());
+			temp1 = Vec3fShape(ptemp1.x(), ptemp1.y(), ptemp1.z());
+
+		}
+		if (jointList.at(i)->getType() == BoxJoint::HINGE){
+			//if (i == 0 )
+			//{
+			//	DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], 1);
+			//}
+			//else if (i == 1)
+			//{
+			//	DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], 2);
+			//}
+			//else if (i == 2)
+			//{
+			//	DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], 3);
+			//}
+			//else if (i == 3)
+			//{
+			//	DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], 4);
+			//}
+			//else
+				DrawTorus(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2]);
+		}
+
 		else{
 			Vec3fShape centerPlane[6];
 			Vec3fShape line[3];
@@ -1025,12 +1244,29 @@ void GLWidget::DrawJoints(){
 					temp1 = centerPlane[2 * k + 1];
 				}
 			}
+
+			line[0] = centerPlane[1] - centerPlane[0];
+			line[1] = centerPlane[3] - centerPlane[2];
+			line[2] = centerPlane[5] - centerPlane[4];
+
 			if (temp0[2] < temp1[2])
-			{
-				DrawArrow(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], jointList.at(i)->getChild().m_transform);
+			{	
+				//if (i == 3)//hack code
+				//	DrawArrow(temp1[0] - 1.5 * line[1][0] - line[2][0], temp1[1] - 1.5 * line[1][1] - line[2][1], temp1[2] - 1.5 * line[1][2] - line[2][2], temp0[0] - 1.5 * line[1][0] - line[2][0], temp0[1] - 1.5 * line[1][1] - line[2][1], temp0[2] - 1.5 * line[1][2] - line[2][2], jointList.at(i)->getChild().m_transform);
+				//else if (i == 2)
+				//	DrawArrow(temp0[0] + line[0][0] + 1.38 * line[1][0], temp0[1] + line[0][1] + 1.38 * line[1][1], temp0[2] + line[0][2] + 1.38 * line[1][2], temp1[0] + line[0][0] + 1.38 * line[1][0], temp1[1] + line[0][1] + 1.38 * line[1][1], temp1[2] + line[0][2] + 1.38 * line[1][2], jointList.at(i)->getChild().m_transform);
+				//else if (i == 1)
+				//	DrawArrow(temp0[0] - line[2][0] + 0.86 * line[1][0], temp0[1] - line[2][1] + 0.86 * line[1][1], temp0[2] - line[2][2] + 0.86 * line[1][2], temp1[0] - line[2][0] + 0.86 * line[1][0], temp1[1] - line[2][1] + 0.86 * line[1][1], temp1[2] - line[2][2] + 0.86 * line[1][2], jointList.at(i)->getChild().m_transform);
+				//else//hack code
+					DrawArrow(temp0[0], temp0[1], temp0[2], temp1[0], temp1[1], temp1[2], jointList.at(i)->getChild().m_transform);
 			}
 			else
-			{
+			{	
+				//if (i == 3)//hack code
+				//	DrawArrow(temp1[0], temp1[1], temp1[2], temp0[0], temp0[1], temp0[2], jointList.at(i)->getChild().m_transform);
+				//else if (i == 2)
+				//	DrawArrow(temp1[0] - line[1][0], temp1[1] - line[1][1], temp1[2] - line[1][2], temp0[0] - line[1][0], temp0[1] - line[1][1], temp0[2] - line[1][2], jointList.at(i)->getChild().m_transform);
+				//else//hack code
 				DrawArrow(temp1[0], temp1[1], temp1[2], temp0[0], temp0[1], temp0[2], jointList.at(i)->getChild().m_transform);
 			}
 			
@@ -1052,6 +1288,22 @@ QVector4D toTranparent(QVector4D clr){
 
 void GLWidget::paintGL()
 {
+	for (size_t i = 0; i < jointList.size(); i++)
+	{
+		jointList.at(i)->rotate();
+	}
+	for (size_t i = 0; i < associateList.size(); i++)
+	{
+		if (associateList.at(i).child.joint)
+		{
+			associateList.at(i).child.m_transform = associateList.at(i).parent.m_transform * associateList.at(i).child.m_transform;
+		}
+		else{
+			associateList.at(i).child.m_transform = associateList.at(i).parent.m_transform;
+		}
+
+		
+	}
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -1156,12 +1408,22 @@ void GLWidget::paintGL()
 		drawShape(boxList.at(i).shapeRange->at(j).first, boxList.at(i).shapeRange->at(j).second, boxList.at(i).m_transform);
 	}
 
+	//if (bRawPC)
+	//{
+	//	QMatrix4x4 im;
+	//	im.setToIdentity();
+	//	m_program->setUniformValue(m_assignedColor, colorList.at(0));
+	//	drawShape(rawPCBegin,rawPCEnd,im);
+	//}
+
 	if (bRawPC)
 	{
-		QMatrix4x4 im;
-		im.setToIdentity();
 		m_program->setUniformValue(m_assignedColor, colorList.at(0));
-		drawShape(rawPCBegin,rawPCEnd,im);
+		for (size_t i = 0; i < boxList.size(); i++)
+		{
+			drawShape(boxList.at(i).boxBegin, boxList.at(i).boxEnd, boxList.at(i).m_transform);
+		}
+
 	}
 			
 
@@ -1629,6 +1891,8 @@ void GLWidget::boxDoubleClick(const QModelIndex &qm){
 
 void GLWidget::jointDoubleClick(const QModelIndex & qm){
 	//QMessageBox::information(0, tr("Cannot dock"), tr("Main window already closed"));
+	if (qm.row() > jointList.size())
+		return;
 	currentJoint = (jointList.at(qm.row()));
 	doubleClickMask = true;
 	switch (currentJoint->getType())
@@ -2456,6 +2720,30 @@ void GLWidget::addConstraint(int index){
 
 		}
 			break;
+		case 11:{
+					associateNode anode(boxList.at(indexParentBox),boxList.at(indexChildBox));
+					associateList.push_back(anode);
+					emit jointUpdate(jointList);
+					emit jointUpdate(associateList);
+		}
+			break;
+		case 12:{	//special hinge: center on the main axis of the child
+					BoxHingeJoint* joint1 = new BoxHingeJoint(boxList.at(indexParentBox), boxList.at(indexChildBox));
+					Vec3fShape pCenter(0.0,0.0,0.0);
+					for (size_t i = 0; i < 8; i++)
+					{
+						pCenter += boxList.at(indexChildBox).vertex[i];
+					}
+					pCenter /= 8;
+					Vec3fShape dv = pCenter - (boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]] + boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[1]]) / 2;
+					//joint1->setPivotPointIndex(boxList.at(indexChildBox).selectedPointIndex[0], boxList.at(indexChildBox).selectedPointIndex[1]);
+					joint1->setPivotPoint(boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[0]] + dv, boxList.at(indexChildBox).vertex[boxList.at(indexChildBox).selectedPointIndex[1]] + dv);
+					joint1->setBoxIndex(indexParentBox, indexChildBox);
+					joint1->setRange(-180, 180);
+					jointList.push_back(joint1);
+					emit jointUpdate(jointList);
+		}
+			break;
 		default:
 			break;
 	}
@@ -2512,18 +2800,26 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 	length = -1.0;
 	lengthFormer = -1.0;
 	
-
-	for (size_t i = 0; i < modelManager.size(); i++)
+	for (size_t i = 0; i < boxList.size(); i++)
 	{
-		modelGuy* modelM = modelManager.at(i);
-		QVector4D p0 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_max, modelM->model_ptr->z_max,1.0);
-		QVector4D p1 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_max, modelM->model_ptr->z_max, 1.0);
-		QVector4D p2 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_min, modelM->model_ptr->z_max, 1.0);
-		QVector4D p3 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_min, modelM->model_ptr->z_max, 1.0);
-		QVector4D p4 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_max, modelM->model_ptr->z_min, 1.0);
-		QVector4D p5 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_max, modelM->model_ptr->z_min, 1.0);
-		QVector4D p6 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_min, modelM->model_ptr->z_min, 1.0);
-		QVector4D p7 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_min, modelM->model_ptr->z_min, 1.0);
+		//modelGuy* modelM = modelManager.at(i);
+		//QVector4D p0 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_max, modelM->model_ptr->z_max,1.0);
+		//QVector4D p1 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_max, modelM->model_ptr->z_max, 1.0);
+		//QVector4D p2 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_min, modelM->model_ptr->z_max, 1.0);
+		//QVector4D p3 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_min, modelM->model_ptr->z_max, 1.0);
+		//QVector4D p4 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_max, modelM->model_ptr->z_min, 1.0);
+		//QVector4D p5 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_max, modelM->model_ptr->z_min, 1.0);
+		//QVector4D p6 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_max, modelM->model_ptr->y_min, modelM->model_ptr->z_min, 1.0);
+		//QVector4D p7 = m_world * modelM->m_world * QVector4D(modelM->model_ptr->x_min, modelM->model_ptr->y_min, modelM->model_ptr->z_min, 1.0);
+
+		QVector4D p0 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[0][0], boxList.at(i).vertex[0][1], boxList.at(i).vertex[0][2], 1.0f);
+		QVector4D p1 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[1][0], boxList.at(i).vertex[1][1], boxList.at(i).vertex[1][2], 1.0f);
+		QVector4D p2 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[2][0], boxList.at(i).vertex[2][1], boxList.at(i).vertex[2][2], 1.0f);
+		QVector4D p3 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[3][0], boxList.at(i).vertex[3][1], boxList.at(i).vertex[3][2], 1.0f);
+		QVector4D p4 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[4][0], boxList.at(i).vertex[4][1], boxList.at(i).vertex[4][2], 1.0f);
+		QVector4D p5 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[5][0], boxList.at(i).vertex[5][1], boxList.at(i).vertex[5][2], 1.0f);
+		QVector4D p6 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[6][0], boxList.at(i).vertex[6][1], boxList.at(i).vertex[6][2], 1.0f);
+		QVector4D p7 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[7][0], boxList.at(i).vertex[7][1], boxList.at(i).vertex[7][2], 1.0f);
 		
 		triangleList[0] = new triangle(p1, p0 - p1, p2 - p1);
 		triangleList[1] = new triangle(p3, p0 - p3, p2 - p3);
@@ -2532,9 +2828,11 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 		triangleList[4] = new triangle(p0, p4 - p0, p3 - p0);
 		triangleList[5] = new triangle(p7, p3 - p7, p4 - p7);
 
+		//find the near one
 		for (size_t j = 0; j < 6; j++)
 		{
 			length = rayTriangleIntersection(eye, point - eye, triangleList[j]->getVectorByNum(0), triangleList[j]->getVectorByNum(1), triangleList[j]->getVectorByNum(2));
+			//intersection happens
 			if (length > 0)
 			{
 				if (lengthFormer < 0)
@@ -2559,8 +2857,11 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event){
 	if (!mouseMoved)
 	if (lengthFormer > 0)
 	{
-		currentMesh = modelManager.at(interIndex);
-		emit currentMeshChanged(interIndex);
+		//currentMesh = modelManager.at(interIndex);
+		//emit currentMeshChanged(interIndex);
+		currentSelectBox = interIndex;
+		emit boxUpdate(boxList.at(currentSelectBox).selectedPlaneIndex, boxList.at(currentSelectBox).selectedPointIndex[0], boxList.at(currentSelectBox).selectedPointIndex[1]);
+		update();
 	}
 }
 
@@ -2916,30 +3217,30 @@ void GLWidget::keyPressEvent(QKeyEvent * event){
 		update();
 	}
 		break;
-	//case '1':
-	//	dx -= 0.005;
-	//	updateRawPC(dx,dy,dz);
-	//	break;
-	//case '2':
-	//	dx += 0.005;
-	//	updateRawPC(dx, dy, dz);
-	//	break;
-	//case '3':
-	//	dy -= 0.005;
-	//	updateRawPC(dx, dy, dz);
-	//	break;
-	//case '4':
-	//	dy += 0.005;
-	//	updateRawPC(dx, dy, dz);
-	//	break;
-	//case '5':
-	//	dz -= 0.005;
-	//	updateRawPC(dx, dy, dz);
-	//	break;
-	//case '6':
-	//	dz += 0.005;
-	//	updateRawPC(dx, dy, dz);
-	//	break;
+	case '1':
+		dx -= 0.005;
+		updateRawPC(dx,dy,dz);
+		break;
+	case '2':
+		dx += 0.005;
+		updateRawPC(dx, dy, dz);
+		break;
+	case '3':
+		dy -= 0.005;
+		updateRawPC(dx, dy, dz);
+		break;
+	case '4':
+		dy += 0.005;
+		updateRawPC(dx, dy, dz);
+		break;
+	case '5':
+		dz -= 0.005;
+		updateRawPC(dx, dy, dz);
+		break;
+	case '6':
+		dz += 0.005;
+		updateRawPC(dx, dy, dz);
+		break;
 	case 'N':
 		storedEye = eye;
 		storedAt = at;

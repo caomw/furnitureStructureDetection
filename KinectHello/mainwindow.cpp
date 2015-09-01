@@ -199,6 +199,8 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	constraintBox->addItem("Add Hinge Joint");		//8
 	constraintBox->addItem("Add Slider Joint");		//9
 	constraintBox->addItem("Rotate");				//10
+	constraintBox->addItem("Associate");				//11
+	constraintBox->addItem("Add Hinge(center axis)");//12
 
 	constraintLayout->addWidget(constraintBox);
 	controlPanelLayout->addLayout(constraintLayout);
@@ -298,6 +300,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	connect(glWidget, SIGNAL(boxUpdate(int, int, int)), this, SLOT(boxUpdate(int, int, int)));
 	connect(glWidget, SIGNAL(editSliderReset()), this, SLOT(editSliderReset()));
 	connect(glWidget, SIGNAL(jointUpdate(std::vector<BoxJoint *>)), this, SLOT(jointUpdate(std::vector<BoxJoint *>)));
+	connect(glWidget, SIGNAL(jointUpdate(std::vector<associateNode>)), this, SLOT(jointUpdate(std::vector<associateNode>)));
 	connect(glWidget, SIGNAL(boxUpdate(std::vector<Box>)), this, SLOT(boxUpdate(std::vector<Box>))); 
 	connect(glWidget, SIGNAL(jointSliderChanged(double, double, double)), this, SLOT(jointSliderUpdate(double, double, double)));
 
@@ -409,6 +412,17 @@ void MainWindow::jointUpdate(std::vector<BoxJoint *> pJointList){
 	}
 }
 
+void MainWindow::jointUpdate(std::vector<associateNode> pJointList){
+	//jointStd->clear();
+	//jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joint"));
+	for (size_t i = 0; i < pJointList.size(); i++)
+	{
+		QStandardItem* itemProject = new QStandardItem(QString("associate") + QString::number(i));
+		itemProject->setEditable(false);
+		jointStd->appendRow(itemProject);
+	}
+}
+
 void MainWindow::boxUpdate(std::vector<Box> pBoxList){
 	boxStd->clear();
 	boxStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Box"));
@@ -430,7 +444,7 @@ void MainWindow::grabResUpdated(/*cv::Mat**/){
 	//glWidget->shapeDetect();
 	//imwrite("back.bmp", rgbWidget->gcapp.binMask);
 
-	//FileStorage fs("data4_ground.xml", FileStorage::WRITE);
+	//FileStorage fs("data9_ground.xml", FileStorage::WRITE);
 	//fs << "vocabulary" << rgbWidget->gcapp.binMask;
 	//fs.release();
 
@@ -445,7 +459,7 @@ void pixel2cam(int x, int y, float depth, float&camx, float& camy)
 
 void MainWindow::openFolder(){
 
-	path = QString("C:\\Users\\LeslieRong\\Desktop\\data4");
+	path = QString("C:\\Users\\LeslieRong\\Desktop\\data0");
 
 	//QFileDialog* openFilePath = new QFileDialog(this, "Please choose a folder", "Folder");
 	//openFilePath->setFileMode(QFileDialog::DirectoryOnly);
@@ -530,7 +544,7 @@ void MainWindow::openFolder(){
 	//******************read raw data of box and pts
 
 	FILE *stream;
-	if ((stream = fopen("Resources/1_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen("Resources/3_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -577,7 +591,7 @@ void MainWindow::openFolder(){
 
 	fclose(stream);
 
-	if ((stream = fopen("Resources/1.pts", "rb")) == NULL)
+	if ((stream = fopen("Resources/3.pts", "rb")) == NULL)
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
