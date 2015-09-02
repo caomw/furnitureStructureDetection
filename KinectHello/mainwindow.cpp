@@ -413,8 +413,7 @@ void MainWindow::jointUpdate(std::vector<BoxJoint *> pJointList){
 }
 
 void MainWindow::jointUpdate(std::vector<associateNode> pJointList){
-	//jointStd->clear();
-	//jointStd->setHorizontalHeaderLabels(QStringList() << QStringLiteral("Joint"));
+
 	for (size_t i = 0; i < pJointList.size(); i++)
 	{
 		QStandardItem* itemProject = new QStandardItem(QString("associate") + QString::number(i));

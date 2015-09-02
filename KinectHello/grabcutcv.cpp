@@ -388,10 +388,10 @@ static void constructGCGraphD(const Mat& img, const Mat& dep, const Mat& mask, c
 			double fromSource, toSink;
 			if (mask.at<uchar>(p) == GC_PR_BGD || mask.at<uchar>(p) == GC_PR_FGD)
 			{
-				fromSource = 0;// -log(bgdGMM(color)) * 0.8;
-				fromSource += -log(bgdGMMD(colorD)) * 10;
-				toSink = 0;//-log(fgdGMM(color)) * 0.8;
-				toSink += -log(fgdGMMD(colorD)) * 10;
+				fromSource = -log(bgdGMM(color)) * 2;
+				fromSource += -log(bgdGMMD(colorD)) * 1;
+				toSink = -log(fgdGMM(color)) * 2;
+				toSink += -log(fgdGMMD(colorD)) * 1;
 			}
 			else if (mask.at<uchar>(p) == GC_BGD)
 			{
@@ -490,12 +490,11 @@ void grabCutDNew(InputArray _img, InputArray _dep, InputOutputArray _mask, Rect 
 		learnGMMs(img, mask, compIdxs, bgdGMM, fgdGMM);
 		learnGMMs(dep, mask, compIdxsD, bgdGMMD, fgdGMMD);
 
-		//		constructGCGraphD(img, dep, mask, bgdGMM, fgdGMM, bgdGMMD, fgdGMMD, lambda, leftW, upleftW, upW, uprightW, graph);
+		//constructGCGraphD(img, dep, mask, bgdGMM, fgdGMM, bgdGMMD, fgdGMMD, lambda, leftW, upleftW, upW, uprightW, graph);
 		constructGCGraphD(img, dep, mask, bgdGMM, fgdGMM, bgdGMMD, fgdGMMD, lambda, leftWD, upleftWD, upWD, uprightWD, graph);
 		estimateSegmentation(graph, mask);
 	}
 }
-
 
 void GCApplication::reset()
 {
@@ -585,7 +584,6 @@ void GCApplication::showImage()
 	//		fillPoly(res, ppt, npt, 1, RED, 8);
 	//	}
 	//}
-
 	res.copyTo(this->res);
 }
 

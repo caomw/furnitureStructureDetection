@@ -758,6 +758,10 @@ void GLWidget::read(){
 		jointTarget->setPivotPoint(jointTemp->getPivotPoint(0), jointTemp->getPivotPoint(1));
 		jointTarget->setBoxIndex(jointTemp->iParent, jointTemp->iChild);
 		jointTarget->setRange(jointTemp->valueRange[0], jointTemp->valueRange[1]);
+		//if (i == 0)
+		//{
+		//	jointTarget->setRange(-180,180);
+		//}
 		//jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
 		jointList.push_back(jointTarget);
 	}
@@ -2863,6 +2867,18 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event){
 		emit boxUpdate(boxList.at(currentSelectBox).selectedPlaneIndex, boxList.at(currentSelectBox).selectedPointIndex[0], boxList.at(currentSelectBox).selectedPointIndex[1]);
 		update();
 	}
+	if (event->button() == Qt::RightButton)
+	{
+		QMenu menu;
+
+		QAction* openAct = new QAction("Open...", this);
+
+		menu.addAction(openAct);
+
+		menu.addSeparator();
+		menu.exec(mapToGlobal(event->pos()));
+	}
+	//QGLWidget::mouseReleaseEvent(event);  //Dont forget to pass on the event to parent
 }
 
 QVector3D triangle::getVectorByNum(int index){

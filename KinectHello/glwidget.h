@@ -9,6 +9,7 @@
 #include <QOpenglTexture>
 #include <QModelIndex>
 #include <QPair>
+#include <QMenu>
 #include <QVector4D>
 #include <opencv\cxcore.h>
 #include <opencv2\highgui\highgui.hpp>
