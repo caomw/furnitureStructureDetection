@@ -56,6 +56,7 @@ public:
 	QComboBox * planeSelectBox;
 	QComboBox * constraintBox;
 	QCheckBox * vertexCheck[8];
+	std::vector<int>* glSelectList;
 
 signals:
 	void vertexSelect(int,int);
@@ -71,6 +72,7 @@ public slots:
 	void boxUpdate(int,int,int);
 	void addConstraint();
 	void editSliderReset();
+	void glRightSelect(int);
 
 private slots:
 	void openFolder();

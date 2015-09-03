@@ -346,6 +346,7 @@ void PaintWidget::brutalModeSwitch(){
 	if (brutalMode)
 	{
 		brutalDone = false;
+		slave->brutalDone = false;
 		brutalPxls.clear();
 		gcapp.brutalPxls.clear();
 		slave->brutalPxls.clear();
@@ -362,6 +363,7 @@ void PaintWidget::brutalModeSwitch(){
 	else
 	{
 		brutalDone = false;
+		slave->brutalDone = false;
 		rect = QRect(0, 0, 0, 0);
 		slave->rect = QRect(0, 0, 0, 0);
 		gcapp.rect = Rect(0, 0, 0, 0);
@@ -372,6 +374,40 @@ void PaintWidget::brutalModeSwitch(){
 		gcapp.reset();
 		brutalMode = 1;
 		gcapp.brutalMode = 1;
+	}
+	gcapp.showImage();
+	update();
+	slave->update();
+}
+
+void PaintWidget::recover(){
+	if (brutalMode)
+	{
+		brutalDone = false;
+		slave->brutalDone = false;
+		brutalPxls.clear();
+		gcapp.brutalPxls.clear();
+		slave->brutalPxls.clear();
+		rect = QRect(0, 0, 0, 0);
+		gcapp.rect = Rect(0, 0, 0, 0);
+		rectState = NOT_SET;
+		rectState = NOT_SET;
+		lblsState = NOT_SET;
+		prLblsState = NOT_SET;
+		gcapp.reset();
+	}
+	else
+	{
+		brutalDone = false;
+		slave->brutalDone = false;
+		rect = QRect(0, 0, 0, 0);
+		slave->rect = QRect(0, 0, 0, 0);
+		gcapp.rect = Rect(0, 0, 0, 0);
+		fgdPxls.clear();
+		bgdPxls.clear();
+		slave->fgdPxls.clear();
+		slave->bgdPxls.clear();
+		gcapp.reset();
 	}
 	gcapp.showImage();
 	update();

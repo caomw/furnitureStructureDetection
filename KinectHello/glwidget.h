@@ -13,83 +13,22 @@
 #include <QVector4D>
 #include <opencv\cxcore.h>
 #include <opencv2\highgui\highgui.hpp>
+#include <QMouseEvent>
+#include <QOpenGLShaderProgram>
+#include <QCoreApplication>
+#include <QDir>
+#include <QMessageBox>
+#include <QVector4D>
+#include <math.h>
 #include "util.h"
+#include "extra.h"
 
 //#pragma comment(lib,"PrimitiveShapes.lib")
-#include "box.h"
-#include "glm.h"
-#include "pca.h"
-//#include "boxJoint.h"
-#include "boxHingeJoint.h"
-#include "boxSliderJoint.h"
 
-#define NoCo 0x1001
-#define XY   0x1002
-#define YZ   0x1003
-#define XZ   0x1004
-#define Mc 1.0
-#define HEIGHT_IMG 480
-#define WIDTH_IMG 640
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
-typedef struct node{
-	GLMmodel * model_ptr = NULL;
-	QString meshName;
-	QMatrix4x4 m_world;
-	float scale = 1.0;
-	int m_xRot = 0;
-	int m_yRot = 0;
-	int m_zRot = 0;
 
-	float m_xTrans = 0;
-	float m_yTrans = 0;
-	float m_zTrans = 0;
-
-	int modelIndex = 0;
-} modelGuy;
-
-class associateNode{
-public:
-	associateNode(Box &pParent, Box& pChild) :parent(pParent), child(pChild){
-	};
-	Box& parent;
-	Box& child;
-};
-
-class triangle{
-public:
-	triangle(const QVector4D & a0, const QVector4D & a1, const QVector4D & a2):v0(a0),e1(a1),e2(a2){
-	
-	};
-	QVector3D getVectorByNum(int index);
-	QVector4D v0;
-	QVector4D e1;
-	QVector4D e2;
-};
-
-class Shape{
-public:
-	Shape(const int & pbegin , const int & pend ):begin(pbegin),end(pend),next(NULL){
-
-	};
-	int begin;
-	int end;
-	Shape * next;
-};
-
-typedef struct vertex{
-	double items[3];
-}fVertex;
-
-typedef struct BoxFileNode{
-	double center[3];
-	double scale[3];
-	double xd[3];
-	double yd[3];
-	double zd[3];
-	std::vector<Vec3fShape> boxVer;
-}BoxFile;
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -129,6 +68,8 @@ public:
 	int m_count;
 	int width;
 	int height;
+	int widthGL;
+	int heightGL;
 	int rawPointCount;
 	QVector<GLfloat> m_data;
 	
@@ -212,8 +153,10 @@ public:
 
 	//associate
 	std::vector<associateNode> associateList;
-
 	bool rawPCFirst;
+
+	//
+	std::vector<int> selectList;
 
 public slots:
     void setXRotation(int angle);
@@ -256,6 +199,9 @@ public slots:
 	void delJoint();
 	void delBox();
 	void drawRawPC();
+	void setGround();
+	void rightSelectSlot();
+	void rightUnselectSlot();
 
 signals:
     void xRotationChanged(int angle);
@@ -273,6 +219,7 @@ signals:
 	void jointSliderChanged(double, double, double);
 	void boxUpdate(int plane, int point1, int point2);
 	void editSliderReset();
+	void rightSelect(int);
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;

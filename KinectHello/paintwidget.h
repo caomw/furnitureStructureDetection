@@ -51,6 +51,7 @@ public slots:
 	void grabCutIteration();
 	void brutalModeState();
 	void brutalModeSwitch();
+	void recover();
 protected:
 	void paintEvent(QPaintEvent *event);
 	void resizeEvent(QResizeEvent * event);

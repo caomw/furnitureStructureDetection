@@ -202,6 +202,7 @@
     <ClInclude Include="boxHingeJoint.h" />
     <ClInclude Include="boxJoint.h" />
     <ClInclude Include="boxSliderJoint.h" />
+    <ClInclude Include="extra.h" />
     <ClInclude Include="GeneratedFiles\ui_kinecthello.h" />
     <ClInclude Include="glm.h" />
     <ClInclude Include="grabcutcv.h" />

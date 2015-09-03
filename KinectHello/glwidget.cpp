@@ -1,11 +1,5 @@
 #include "glwidget.h"
-#include <QMouseEvent>
-#include <QOpenGLShaderProgram>
-#include <QCoreApplication>
-#include <QDir>
-#include <QMessageBox>
-#include <QVector4D>
-#include <math.h>
+
 
 #define T(x) (model->triangles[(x)])
 std::string filePath = std::string("Resources/data0/");
@@ -51,7 +45,8 @@ GLWidget::GLWidget(QWidget *parent)
 	  bDrawJoint(true),
 	  eyeAtMode(0),
 	  boxCenter(0,0,0),
-	  bDrawSelected(true)
+	  bDrawSelected(true),
+	  texture(NULL)
 {
     //m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -491,9 +486,6 @@ void GLWidget::initializeGL()
 
 	m_program->setUniformValue("s_baseMap", 0);
 
-	if (rgbMap){
-		texture = new QOpenGLTexture(*rgbMap);
-	}
 	shapeColor = new QImage(640,480,QImage::Format_RGB888);
 
 	arrowModel = glmReadOBJ("Resources/arrow2.obj");
@@ -758,11 +750,11 @@ void GLWidget::read(){
 		jointTarget->setPivotPoint(jointTemp->getPivotPoint(0), jointTemp->getPivotPoint(1));
 		jointTarget->setBoxIndex(jointTemp->iParent, jointTemp->iChild);
 		jointTarget->setRange(jointTemp->valueRange[0], jointTemp->valueRange[1]);
-		//if (i == 0)
+		//if (i == 2 || i ==3)
 		//{
-		//	jointTarget->setRange(-180,180);
+		//	jointTarget->setRange(-2,2);
 		//}
-		//jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
+		jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
 		jointList.push_back(jointTarget);
 	}
 	fclose(stream);
@@ -795,6 +787,9 @@ void GLWidget::read(){
 	//{
 	//	boxList.at(i).joint = NULL;
 	//}
+
+	m_camera.setToIdentity();
+	m_camera.lookAt(eye, at, up);
 	update();
 	emit jointUpdate(jointList);
 	emit boxUpdate(boxList);
@@ -1280,10 +1275,12 @@ void GLWidget::DrawJoints(){
 
 void GLWidget::drawJoint(){
 	bDrawJoint = !bDrawJoint;
+	update();
 }
 
 void GLWidget::drawSelected(){
 	bDrawSelected = !bDrawSelected;
+	update();
 }
 
 QVector4D toTranparent(QVector4D clr){
@@ -1312,8 +1309,13 @@ void GLWidget::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	texture->setMagnificationFilter(QOpenGLTexture::Linear);
+	//texture->setMagnificationFilter(QOpenGLTexture::Linear);
+	
+	if (rgbMap && !texture){
+		texture = new QOpenGLTexture(*rgbMap);
+	}
 
+	if (texture)
 	if (!drawShapeWithColor){
 		if (rgbMap)
 			texture->setData(*rgbMap);
@@ -1321,7 +1323,8 @@ void GLWidget::paintGL()
 	else if (shapeColor)
 		texture->setData(*shapeColor);
 
-	texture->bind();
+	if (texture)
+		texture->bind();
     m_world.setToIdentity();
 
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
@@ -1449,7 +1452,12 @@ void GLWidget::paintGL()
 		if (currentSelectBox == i)
 		{
 			m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())) * 1.5);
-		}
+		}else
+			for (std::vector<int>::iterator it = selectList.begin(); it != selectList.end();it++)
+			{
+				if (*it == i)
+					m_program->setUniformValue(m_assignedColor, toTranparent(colorList.at(i % colorList.size())) * 1.5);
+			}
 		m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world * boxList.at(i).m_transform);
 		for (size_t j = 0; j < 6; j++)
 		{
@@ -1596,8 +1604,8 @@ void GLWidget::resizeGL(int w, int h)
 {
     m_proj.setToIdentity();
 	m_proj.perspective(45.0f, GLfloat(w) / h, nearPlane, 1000.0f);
-	width = w;
-	height = h;
+	widthGL = w;
+	heightGL = h;
 	glViewport(0,0,w,h);
 }
 
@@ -1629,46 +1637,6 @@ float rayTriangleIntersection(const QVector3D &pos, const QVector3D &dir, const 
 	float tt = QVector3D::dotProduct(edge2, qvec) * det;
 	return tt;
 }
-
-
-//void addBoxPoint(GLWidget * gl, const Box &b, int x, int y, int z){
-//	Vec3fShape it;
-//	it = b.center
-//		+ x * b.normal[0] * b.max[0] + (1 - x)* b.normal[0] * b.min[0]
-//		+ y * b.normal[1] * b.max[1] + (1 - y)* b.normal[1] * b.min[1]
-//		+ z * b.normal[2] * b.max[2] + (1 - z)* b.normal[2] * b.min[2];
-//
-//	gl->add(QVector3D(it[0], it[1], it[2]), QVector3D(b.normal[0][0], b.normal[0][1], b.normal[0][2]));
-//	gl->addTex(QVector2D(0.0f, 0.0f));
-//}
-//
-//void GLWidget::addBox(Box & b){
-//	b.boxBegin = m_count / 8;
-//	addBoxPoint(this, b, 0, 1, 1);
-//	addBoxPoint(this, b, 1, 1, 1);
-//	addBoxPoint(this, b, 1, 1, 0);
-//
-//	addBoxPoint(this, b, 1, 1, 0);
-//	addBoxPoint(this, b, 0, 1, 0);
-//	addBoxPoint(this, b, 0, 1, 1);
-//
-//	addBoxPoint(this, b, 0, 0, 1);
-//	addBoxPoint(this, b, 0, 1, 1);
-//	addBoxPoint(this, b, 0, 1, 0);
-//
-//	addBoxPoint(this, b, 0, 1, 0);
-//	addBoxPoint(this, b, 0, 0, 0);
-//	addBoxPoint(this, b, 0, 0, 1);
-//
-//	addBoxPoint(this, b, 0, 0, 0);
-//	addBoxPoint(this, b, 1, 0, 0);
-//	addBoxPoint(this, b, 1, 1, 0);
-//
-//	addBoxPoint(this, b, 1, 1, 0);
-//	addBoxPoint(this, b, 0, 1, 0);
-//	addBoxPoint(this, b, 0, 0, 0);
-//	b.boxEnd = m_count / 8;
-//}
 
 void GLWidget::addPointCloud(cv::Mat mask){
 	Vec3fShape min, max;
@@ -1733,6 +1701,15 @@ void readBoxInFile(std::string name, struct BoxInFile ** kp, int * pint)
 	fclose(stream);
 }
 
+void GLWidget::setGround(){
+	pc.clear();
+	addPointCloud(grabResult);
+	shapeDetect(1);
+	shapeRange.clear();
+
+	QMessageBox::information(0, tr("Done."), tr("You have successfully set the ground normal for reference."));
+}
+
 void GLWidget::boxTest(){
 	cv::Mat back;
 
@@ -1743,6 +1720,11 @@ void GLWidget::boxTest(){
 	shapeRange.clear();
 	fs.release();
 
+	if (!bnormalGroundSet)
+	{
+		QMessageBox::information(0, tr("Please set the ground normal."), tr("Please select the ground and click GROUND button."));
+		return;
+	}
 	pc.clear();
 	addPointCloud(grabResult);
 	shapeDetect();
@@ -1947,7 +1929,7 @@ void GLWidget::jointSliderValueChanged(int pValue){
 		return;
 	}
 
-	double pos = pValue / 1000.0f * (currentJoint->getRangeMax() - currentJoint->getRangeMin()) + currentJoint->getRangeMin();
+	double pos = pValue / 5000.0f * (currentJoint->getRangeMax() - currentJoint->getRangeMin()) + currentJoint->getRangeMin();
 	switch (currentJoint->getType())
 	{
 		case BoxJoint::HINGE:{
@@ -2309,13 +2291,14 @@ void GLWidget::shapeDetect(int signForGround ){
 		minLength[i] /= 1000.0f;
 	}
 	center /= 1000.0f;	
-	boxCenter = center;
+	
 	float pmax[3] = { maxLength[0], maxLength[1], maxLength[2] };
 	float pmin[3] = { minLength[0], minLength[1], minLength[2] };
 
 	Box nBox(center, pnormal, pmax, pmin);
 	for (size_t i = 0; i < shapeRange.size(); i++)
 		nBox.shapeRange->push_back(shapeRange.at(i));
+	boxCenter = nBox.getCenter();
 	shapeRange.clear();
 	
 	boxList.push_back(nBox);
@@ -2792,15 +2775,15 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 	float t = tan(M_PI / 8);
 
 	float h = 2 * nearPlane * t;
-	float w = h * (float(width) / height);
+	float w = h * (float(widthGL) / heightGL);
 	QVector3D leftUp = center + right * (-w / 2) + upp * (h / 2);
 
-	QVector3D point =  leftUp + (m_lastPos.x() / (float)width) * w * right + upp * (-m_lastPos.y() / (float)height) * h;
+	QVector3D point =  leftUp + (m_lastPos.x() / (float)widthGL) * w * right + upp * (-m_lastPos.y() / (float)heightGL) * h;
 
 	selectRay = point;
 	float f = (0.4964-eye.z()) / (point - eye).z();
 	QVector3D verify = f * (point - eye) + eye;
-	triangle * triangleList[6];
+	triangle triangleList[12];
 	length = -1.0;
 	lengthFormer = -1.0;
 	
@@ -2825,17 +2808,24 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 		QVector4D p6 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[6][0], boxList.at(i).vertex[6][1], boxList.at(i).vertex[6][2], 1.0f);
 		QVector4D p7 = m_world * boxList.at(i).m_transform * QVector4D(boxList.at(i).vertex[7][0], boxList.at(i).vertex[7][1], boxList.at(i).vertex[7][2], 1.0f);
 		
-		triangleList[0] = new triangle(p1, p0 - p1, p2 - p1);
-		triangleList[1] = new triangle(p3, p0 - p3, p2 - p3);
-		triangleList[2] = new triangle(p5, p4 - p5, p1 - p5);
-		triangleList[3] = new triangle(p0, p1 - p0, p4 - p0);
-		triangleList[4] = new triangle(p0, p4 - p0, p3 - p0);
-		triangleList[5] = new triangle(p7, p3 - p7, p4 - p7);
+		triangleList[0] = triangle(p1, p0 - p1, p2 - p1);
+		triangleList[1] = triangle(p3, p0 - p3, p2 - p3);
+		triangleList[2] = triangle(p5, p4 - p5, p1 - p5);
+		triangleList[3] = triangle(p0, p1 - p0, p4 - p0);
+		triangleList[4] = triangle(p0, p4 - p0, p3 - p0);
+		triangleList[5] = triangle(p7, p3 - p7, p4 - p7);
+
+		triangleList[6] = triangle(p1, p5 - p1, p2 - p1);
+		triangleList[7] = triangle(p6, p5 - p6, p2 - p6);
+		triangleList[8] = triangle(p6, p7 - p6, p2 - p6);
+		triangleList[9] = triangle(p3, p7 - p3, p2 - p3);
+		triangleList[10] = triangle(p6, p5 - p6, p7 - p6);
+		triangleList[11] = triangle(p4, p5 - p4, p7 - p4);
 
 		//find the near one
-		for (size_t j = 0; j < 6; j++)
+		for (size_t j = 0; j < 12; j++)
 		{
-			length = rayTriangleIntersection(eye, point - eye, triangleList[j]->getVectorByNum(0), triangleList[j]->getVectorByNum(1), triangleList[j]->getVectorByNum(2));
+			length = rayTriangleIntersection(eye, point - eye, triangleList[j].getVectorByNum(0), triangleList[j].getVectorByNum(1), triangleList[j].getVectorByNum(2));
 			//intersection happens
 			if (length > 0)
 			{
@@ -2867,19 +2857,57 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event){
 		emit boxUpdate(boxList.at(currentSelectBox).selectedPlaneIndex, boxList.at(currentSelectBox).selectedPointIndex[0], boxList.at(currentSelectBox).selectedPointIndex[1]);
 		update();
 	}
-	if (event->button() == Qt::RightButton)
+
+	if (event->button() == Qt::RightButton && !mouseMoved)
 	{
 		QMenu menu;
+		bool flag = false;
+		QAction* selectAct = new QAction("select", &menu);
+		connect(selectAct, SIGNAL(triggered()), this, SLOT(rightSelectSlot()));
+		QAction* unSelectAct = new QAction("unselect", &menu);
+		connect(unSelectAct, SIGNAL(triggered()), this, SLOT(rightUnselectSlot()));
+		for (size_t i = 0; i < selectList.size(); i++)
+		{
+			if (interIndex == selectList.at(i)){
+				flag = true;
+				break;
+			}
+		}
 
-		QAction* openAct = new QAction("Open...", this);
-
-		menu.addAction(openAct);
-
+		if (flag)
+		{
+			menu.addAction(unSelectAct);
+		}
+		else{
+			menu.addAction(selectAct);
+		}
+		
+		menu.addSeparator();
 		menu.addSeparator();
 		menu.exec(mapToGlobal(event->pos()));
 	}
-	//QGLWidget::mouseReleaseEvent(event);  //Dont forget to pass on the event to parent
 }
+void GLWidget::rightSelectSlot(){
+	//emit rightSelect(interIndex);
+	selectList.push_back(interIndex);
+	emit boxUpdate(boxList);
+	update();
+}
+
+void GLWidget::rightUnselectSlot(){
+
+	for (std::vector<int>::iterator it = selectList.begin(); it != selectList.end(); it++)
+	{
+		if (*it == interIndex)
+		{
+			selectList.erase(it);
+			break;
+		}
+	}
+	emit boxUpdate(boxList);
+	update();
+}
+
 
 QVector3D triangle::getVectorByNum(int index){
 	switch (index)
@@ -3175,14 +3203,14 @@ void GLWidget::removeMesh(QString name){
 
 void GLWidget::wheelEvent(QWheelEvent * event){
 
-	m_camera.setToIdentity();
 	QVector3D dv = at - eye;
 	//int x = event->delta();
 	if (event->delta() > 0 && event->delta() / 400.0 > (eye - at).length())
 		eye = eye;
 	else
 		eye += event->delta() / 400.0 * dv.normalized();
-	m_camera.lookAt(eye, at, QVector3D(0, 1, 0));
+	m_camera.setToIdentity();
+	m_camera.lookAt(eye, at, up);
 	update();
 }
 

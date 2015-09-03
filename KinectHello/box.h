@@ -94,6 +94,14 @@ public:
 		return vertex[i];
 	}
 
+	Vec3fShape& getCenter(){
+		Vec3fShape c(0,0,0);
+		for (size_t i = 0; i < 8; i++)
+		{
+			c += vertex[i];
+		}
+		return Vec3fShape(c / 8);
+	}
 	Vec3fShape center;
 	Vec3fShape normal[3];
 	Vec3fShape vertex[8];
