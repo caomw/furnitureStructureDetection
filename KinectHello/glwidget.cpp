@@ -2,6 +2,8 @@
 
 
 #define T(x) (model->triangles[(x)])
+
+// the chair use the data 4 please
 std::string filePath = std::string("Resources/data0/");
 std::string fileHead = std::string("data0");
 
@@ -259,7 +261,7 @@ static const char *fragmentShaderSource =
 
 void GLWidget::laodRawPC(){
 	FILE *stream;
-	if ((stream = fopen("Resources/3_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
+	if ((stream = fopen("Resources/1_initial.box", "rb")) == NULL) /* open file TEST.$$$ */
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -304,7 +306,7 @@ void GLWidget::laodRawPC(){
 
 	fclose(stream);
 
-	if ((stream = fopen("Resources/3.pts", "rb")) == NULL)
+	if ((stream = fopen("Resources/1.pts", "rb")) == NULL)
 	{
 		fprintf(stderr, "Cannot open output file.\n");
 		return;
@@ -750,11 +752,11 @@ void GLWidget::read(){
 		jointTarget->setPivotPoint(jointTemp->getPivotPoint(0), jointTemp->getPivotPoint(1));
 		jointTarget->setBoxIndex(jointTemp->iParent, jointTemp->iChild);
 		jointTarget->setRange(jointTemp->valueRange[0], jointTemp->valueRange[1]);
-		//if (i == 2 || i ==3)
-		//{
-		//	jointTarget->setRange(-2,2);
-		//}
-		jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
+		if (i >= 1)
+		{
+			jointTarget->setRange(-0.5,0.5);
+		}
+		//jointTemp->setBox(boxList.at(jointTemp->iParent), boxList.at(jointTemp->iChild));
 		jointList.push_back(jointTarget);
 	}
 	fclose(stream);
@@ -2858,14 +2860,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event){
 		update();
 	}
 
-	if (event->button() == Qt::RightButton && !mouseMoved)
+	if (!mouseMoved)
 	{
-		QMenu menu;
 		bool flag = false;
-		QAction* selectAct = new QAction("select", &menu);
-		connect(selectAct, SIGNAL(triggered()), this, SLOT(rightSelectSlot()));
-		QAction* unSelectAct = new QAction("unselect", &menu);
-		connect(unSelectAct, SIGNAL(triggered()), this, SLOT(rightUnselectSlot()));
 		for (size_t i = 0; i < selectList.size(); i++)
 		{
 			if (interIndex == selectList.at(i)){
@@ -2873,20 +2870,76 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event){
 				break;
 			}
 		}
-
-		if (flag)
+		if (!flag)
 		{
-			menu.addAction(unSelectAct);
+			selectList.push_back(interIndex);
+			emit boxUpdate(boxList);
+			update();
 		}
-		else{
-			menu.addAction(selectAct);
-		}
+	}
+
+	if (event->button() == Qt::RightButton && !mouseMoved)
+	{
+		QMenu menu;
 		
+		QAction* selectAct = new QAction("select", &menu);
+		connect(selectAct, SIGNAL(triggered()), this, SLOT(rightSelectSlot()));
+		QAction* unSelectAct = new QAction("Unselect All", &menu);
+		//connect(unSelectAct, SIGNAL(triggered()), this, SLOT(rightUnselectSlot()));
+		connect(unSelectAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+
+		//if (flag)
+		//{
+		//	menu.addAction(unSelectAct);
+		//}
+		//else{
+		//	menu.addAction(selectAct);
+		//}
+		menu.addAction(unSelectAct);
+
 		menu.addSeparator();
-		menu.addSeparator();
+		QAction* equalSizeAct = new QAction("Equal Size", &menu);
+		QAction* slideAct = new QAction("Sliding Joint", &menu);
+		QAction* hingeAct = new QAction("Hinge Joint", &menu);
+		QAction* fitAct = new QAction("Fit Inside", &menu);
+		QAction* coverAct = new QAction("Cover", &menu);
+		QAction* flushAct = new QAction("Flush", &menu);
+		QAction* supportAct = new QAction("Support", &menu);
+		QAction* connectAct = new QAction("Connect", &menu);
+		
+		if (selectList.size() == 2)
+		{
+			menu.addAction(slideAct);
+			menu.addAction(hingeAct);
+			menu.addAction(equalSizeAct);
+			menu.addAction(flushAct);
+			menu.addAction(supportAct);
+			menu.addAction(connectAct);
+		}
+
+		if (selectList.size() == 3){
+			menu.addAction(fitAct);
+			menu.addAction(coverAct);
+		}
+
+		connect(equalSizeAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+		connect(slideAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+		connect(hingeAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+		connect(fitAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+		connect(coverAct, SIGNAL(triggered()), this, SLOT(resetSelected()));
+
 		menu.exec(mapToGlobal(event->pos()));
 	}
 }
+
+void GLWidget::resetSelected(){
+	selectList.clear();
+	emit boxUpdate(boxList);
+	interIndex = -1;
+	currentSelectBox = -1;
+	update();
+}
+
 void GLWidget::rightSelectSlot(){
 	//emit rightSelect(interIndex);
 	selectList.push_back(interIndex);

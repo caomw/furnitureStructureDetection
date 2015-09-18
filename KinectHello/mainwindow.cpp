@@ -101,7 +101,7 @@ MainWindow::MainWindow() :rgbImage(NULL), depthImage(NULL)
 	QGroupBox *groupBox = new QGroupBox(tr("Graphics"));
 	QVBoxLayout *cg = new QVBoxLayout(this);
 	//temp size
-	glWidget->setFixedSize(QSize(900,900));
+	//glWidget->setFixedSize(QSize(900,900));
 	cg->addWidget(glWidget);
 	groupBox->setLayout(cg);
 	groupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -419,8 +419,8 @@ void MainWindow::jointSliderUpdate(double value, double min, double max){
 	int pos = (value - min) / (max - min) * 5000;
 	jointSlider->setValue(pos);
 	jointSlider->setRange(0, 4999);
-	jointSlider->setSingleStep(6);
-	jointSlider->setPageStep(6);
+	jointSlider->setSingleStep(2);
+	jointSlider->setPageStep(2);
 }
 
 void MainWindow::jointUpdate(std::vector<BoxJoint *> pJointList){

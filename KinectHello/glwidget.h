@@ -202,6 +202,7 @@ public slots:
 	void setGround();
 	void rightSelectSlot();
 	void rightUnselectSlot();
+	void resetSelected();
 
 signals:
     void xRotationChanged(int angle);
